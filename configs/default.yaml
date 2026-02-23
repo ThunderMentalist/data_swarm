@@ -1,0 +1,13 @@
+timezone: Europe/London
+llm:
+  provider: openai
+  model: gpt-4o-mini
+paths: {}
+meridian_aux:
+  max_files: 25
+  max_chars: 60000
+  max_debug_iterations: 3
+logging:
+  level: INFO
+safety:
+  never_write_outside_repo: true
