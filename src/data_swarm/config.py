@@ -8,14 +8,58 @@ from pathlib import Path
 from typing import Any
 
 from data_swarm import yaml_compat as yaml
+from data_swarm.tools.dotenv import load_dotenv
 
 DEFAULT_CONFIG = {
     "timezone": "Europe/London",
     "llm": {"provider": "openai", "model": "gpt-4o-mini"},
+    "triage": {
+        "confidence_threshold": 0.6,
+        "default_sensitivity": "internal",
+        "risk_flags": ["timeline", "dependency", "stakeholder_alignment"],
+    },
+    "hitl": {
+        "clarification_required": True,
+        "comms_review_required": True,
+        "patch_approval_required": True,
+        "approve_after_test_failure": True,
+    },
+    "comms": {
+        "default_style": "friendly_diplomatic",
+        "leadership_style": "formal_concise",
+        "political_two_variant": True,
+    },
+    "privacy": {"persist_identifiers": False, "require_role_mapping": True},
     "meridian_aux": {"max_files": 25, "max_chars": 60000, "max_debug_iterations": 3},
     "logging": {"level": "INFO"},
     "safety": {"never_write_outside_repo": True},
 }
+
+TONE_TEMPLATE = """# Tone Profile
+
+## Baseline voice
+- Friendly, diplomatic, and clear.
+- Transparent about trade-offs without sounding vague.
+- Avoid blunt or combative phrasing.
+
+## Audience calibration
+- **Peers:** collaborative and practical.
+- **Senior leadership:** more formal, concise, and decision-oriented.
+
+## Do / Don't examples
+- Do: "Here is the recommended path and associated risk."
+- Do: "I can provide a shorter executive summary if helpful."
+- Don't: "This is obvious" or "You should have".
+- Don't: overstate certainty when there are open unknowns.
+
+## Custom phrases
+- Add preferred openings, closings, and reusable snippets below.
+"""
+
+ENV_TEMPLATE = """# Local environment variables for data_swarm
+# Do not commit secrets.
+# OPENAI_API_KEY=
+"""
 
 
 @dataclass
@@ -71,16 +115,20 @@ def init_home(home: Path | None = None) -> Config:
         (root / p).mkdir(parents=True, exist_ok=True)
     cfg = root / "config.yaml"
     tone = root / "tone_profile.md"
+    env_file = root / ".env"
     if not cfg.exists():
         cfg.write_text(yaml.safe_dump(DEFAULT_CONFIG, sort_keys=False), encoding="utf-8")
     if not tone.exists():
-        tone.write_text("# Tone Profile\nDiplomatic, concise, supportive.\n", encoding="utf-8")
+        tone.write_text(TONE_TEMPLATE, encoding="utf-8")
+    if not env_file.exists():
+        env_file.write_text(ENV_TEMPLATE, encoding="utf-8")
     return load_config(root)
 
 
 def load_config(home: Path | None = None) -> Config:
     """Load config and resolve defaults/autodetected paths."""
     data_home = home or default_data_swarm_home()
+    load_dotenv(data_home / ".env")
     cfg_path = data_home / "config.yaml"
     payload: dict[str, Any] = dict(DEFAULT_CONFIG)
     if cfg_path.exists():

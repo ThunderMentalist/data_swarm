@@ -1,2 +1,4 @@
-# Planner prompt
-Use deterministic, concise output. Respect de-identification.
+# Planner Stage
+
+Create a practical plan with assumptions, unknowns, dependencies, next actions.
+Respect state machine transitions and include artifact references for transition logging.

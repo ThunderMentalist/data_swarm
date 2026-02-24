@@ -11,10 +11,12 @@ requires-python = ">=3.10"
 authors = [{name = "data_swarm maintainers"}]
 dependencies = [
   "pyyaml>=6.0",
-  "openai>=1.30.0",
 ]
 
 [project.optional-dependencies]
+openai = [
+  "openai>=1.30.0",
+]
 dev = [
   "pytest>=8.0.0",
   "ruff>=0.6.0",

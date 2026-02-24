@@ -30,3 +30,19 @@ def apply_patch_safe(diff_text: str, target_repo: Path) -> None:
         text=True,
         check=True,
     )
+
+
+
+def summarize_patch(diff_text: str) -> dict[str, object]:
+    """Summarize a unified diff by file and line counts."""
+    files = _extract_targets(diff_text)
+    added = 0
+    removed = 0
+    for line in diff_text.splitlines():
+        if line.startswith("+++") or line.startswith("---"):
+            continue
+        if line.startswith("+"):
+            added += 1
+        elif line.startswith("-"):
+            removed += 1
+    return {"files": files, "added": added, "removed": removed}
