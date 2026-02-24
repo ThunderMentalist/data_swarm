@@ -2,6 +2,25 @@ timezone: Europe/London
 llm:
   provider: openai
   model: gpt-4o-mini
+triage:
+  confidence_threshold: 0.6
+  default_sensitivity: internal
+  risk_flags:
+    - timeline
+    - dependency
+    - stakeholder_alignment
+hitl:
+  clarification_required: true
+  comms_review_required: true
+  patch_approval_required: true
+  approve_after_test_failure: true
+comms:
+  default_style: friendly_diplomatic
+  leadership_style: formal_concise
+  political_two_variant: true
+privacy:
+  persist_identifiers: false
+  require_role_mapping: true
 paths: {}
 meridian_aux:
   max_files: 25

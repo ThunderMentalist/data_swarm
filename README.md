@@ -1,67 +1,74 @@
 # data_swarm
 
 `data_swarm` is an agentic Task OS for task-centric execution with explicit HITL checkpoints,
-local-only stores, structured state transitions, and plugin-based deliverables.
+validated state transitions, local JSONL logs, and plugin-based deliverables.
 
-## Features
-
-- Strict task schema + state machine transitions.
-- First-class HITL stages (clarification, comms review, patch approvals).
-- Cross-cutting JSONL logging per task.
-- Local de-identified memory store (SQLite).
-- Meridian_Aux deliverable plugin with indexing, evidence packet creation, and patch/test artifacts.
-
-## Quickstart
+## Install
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -e .[dev]
-
-# Initialize local runtime home
-DATA_SWARM_HOME=~/.data_swarm data-swarm init
-
-# Create a task
-data-swarm task new --title "Fix Meridian Aux bug" --description "Need robust patch generation" --task-type meridian_aux_codegen
-
-# Run task pipeline (interactive)
-data-swarm task run <task_id>
+# Optional LLM integration
+python -m pip install -e .[openai]
+# or both
+python -m pip install -e .[dev,openai]
 ```
 
-## DATA_SWARM_HOME layout
+## Pipeline stages and states
 
-`DATA_SWARM_HOME` defaults to `~/.data_swarm` and is the only mutable runtime location:
+Stages: intake → triage → planner → stakeholder → navigation → comms → feedback → deliverable.
+
+State machine: `NEW -> NEEDS_CLARIFICATION -> PLANNED -> OUTREACH_PENDING_REVIEW -> AWAITING_REPLIES -> READY_TO_DELIVER -> DELIVERED` (plus `REPLANNING/BLOCKED/CLOSED` branches).
+All state changes are validated and persisted with `state_transition` JSONL events.
+
+## HITL modes
+
+1. **Clarification loop:** triage questions, then explicit approval to proceed.
+2. **Comms review:** drafts are generated per channel and both draft + approved copies are stored.
+3. **Code/bug approvals:** patch approval before apply, and additional approval after test failures before debug iteration.
+
+## Privacy model
+
+- Identifiers may be seen during active session.
+- Feedback persistence is sanitized after role mapping.
+- Memory store receives role-level notes only (no names/emails).
+- Mapping tables are not persisted; only sanitized output is stored.
+
+## DATA_SWARM_HOME and local config
+
+`DATA_SWARM_HOME` defaults to `~/.data_swarm` and is the single editable location:
 
 - `~/.data_swarm/config.yaml`
-- `~/.data_swarm/.env` (optional local env file)
-- `~/.data_swarm/tasks/...`
-- `~/.data_swarm/logs/...`
-- `~/.data_swarm/memory/...`
-- `~/.data_swarm/indexes/...`
+- `~/.data_swarm/tone_profile.md`
+- `~/.data_swarm/.env` (commented placeholders only)
+- `~/.data_swarm/tasks/`, `logs/`, `memory/`, `indexes/`
 
-## Meridian path configuration
+Run:
 
-If omitted, paths are auto-detected as sibling repos:
+```bash
+data-swarm init
+```
+
+This creates config defaults, richer tone profile template, and `.env` placeholder.
+
+## SageMaker sibling repo layout
+
+Default auto-detection expects sibling repositories:
 
 - `/home/ec2-user/SageMaker/data_swarm`
 - `/home/ec2-user/SageMaker/meridian`
 - `/home/ec2-user/SageMaker/meridian_aux`
 
-Override in `~/.data_swarm/config.yaml` under `paths.meridian_repo` and `paths.meridian_aux_repo`.
+Override paths in `~/.data_swarm/config.yaml` under `paths`.
 
-## Example Meridian_Aux workflow
+## Meridian_Aux plugin flow
 
-1. Build index: `data-swarm index build`
-2. Run task with `task_type=meridian_aux_codegen`
-3. Review generated artifacts in:
-   - `07_deliverable/evidence/`
-   - `07_deliverable/patch.diff`
-   - `07_deliverable/test_run.json`
-
-If `OPENAI_API_KEY` is not set, codegen fails gracefully and writes guidance in `07_deliverable/notes.md`.
-
-## Safety notes
-
-- Never commit secrets; API keys are environment-only.
-- Memory persistence stores role-level de-identified info only.
-- Patch application refuses writes outside configured target repo.
+1. Build index over **both** `meridian` and `meridian_aux`.
+2. Navigator selects entrypoints.
+3. Dependency closure follows import edges (bounded by `max_files` and `max_chars`).
+4. Evidence packet writes snippets, import edges, and `evidence/context.md` summary.
+5. Codegen proposes patch/snippet/tests; patch summary shown before approval.
+6. Snippet + pytest run.
+7. On failure, traceback artifacts are stored and bounded debug loop runs (default 3 iterations) with approval before each iteration and debug patch apply.
+8. Final summary written to `07_deliverable/summary.md`.
