@@ -52,6 +52,18 @@ data-swarm init
 
 This creates config defaults, richer tone profile template, and `.env` placeholder.
 
+`data-swarm init` also seeds `~/.data_swarm/kb/` with local-only YAML templates:
+
+- `org_units.yaml`
+- `role_registry.yaml`
+- `stakeholder_profiles.yaml`
+- `politics_map.yaml`
+- `comms_patterns.yaml`
+
+The KB is role-token-only (no names/emails) and is the single local place to edit
+stakeholder, navigation, and comms context. Prompts assume this KB exists, but they
+still operate if files are missing/sparse.
+
 ## SageMaker sibling repo layout
 
 Default auto-detection expects sibling repositories:

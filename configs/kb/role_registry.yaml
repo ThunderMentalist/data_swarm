@@ -1,0 +1,17 @@
+version: 1
+roles:
+  - role_token: "Econometrics Director"
+    org_unit: "Analytics"
+    mandate: "Owns econometric standards and approves modelling approaches."
+    decision_rights:
+      - "Approve model methodology"
+      - "Approve publication of results"
+    typical_concerns:
+      - "Methodological rigor"
+      - "Reputational risk"
+    preferred_channels: ["email", "meeting"]
+    response_style: "Formal, concise, evidence-led"
+    red_lines: ["Unvalidated claims", "Unclear data provenance"]
+    success_signals: ["Clear test plan", "Peer review"]
+notes:
+  - "Add role tokens and decision rights. Do NOT add personal names/emails."

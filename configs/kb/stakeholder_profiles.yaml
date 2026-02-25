@@ -1,0 +1,15 @@
+version: 1
+profiles:
+  - role_token: "Client Lead — Retail UK"
+    goals: ["Client satisfaction", "On-time delivery"]
+    incentives: ["Smooth stakeholder management", "No surprises"]
+    personality_notes:
+      - "Prefers options, not ambiguity"
+      - "Dislikes long technical detail in first message"
+    negotiation_tactics:
+      - "Offer two options with tradeoffs"
+      - "Confirm constraints early"
+    trust_builders: ["Proactive updates", "Visible risk mitigation"]
+    common_blockers: ["Scope creep", "Client changing requirements"]
+notes:
+  - "Add role-level personalities/preferences. No identities."

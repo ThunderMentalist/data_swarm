@@ -35,31 +35,92 @@ DEFAULT_CONFIG = {
     "safety": {"never_write_outside_repo": True},
 }
 
-TONE_TEMPLATE = """# Tone Profile
+TONE_TEMPLATE = """# Tone Profile (User-Editable)
 
-## Baseline voice
-- Friendly, diplomatic, and clear.
-- Transparent about trade-offs without sounding vague.
-- Avoid blunt or combative phrasing.
+## Voice in 5 adjectives
+(e.g., calm, pragmatic, slightly witty, diplomatic, direct)
 
-## Audience calibration
-- **Peers:** collaborative and practical.
-- **Senior leadership:** more formal, concise, and decision-oriented.
+## Default formality
+- Peers: friendly, concise, a bit informal
+- Leadership: formal, concise, risk-aware
+- Clients: polished, reassuring, no surprises
 
-## Do / Don't examples
-- Do: "Here is the recommended path and associated risk."
-- Do: "I can provide a shorter executive summary if helpful."
-- Don't: "This is obvious" or "You should have".
-- Don't: overstate certainty when there are open unknowns.
+## Vocabulary & phrasing
+### Phrases I like to use
+- ...
 
-## Custom phrases
-- Add preferred openings, closings, and reusable snippets below.
+### Phrases I never use
+- ...
+
+## Sentence structure preferences
+- Short sentences
+- Bullets for asks
+- Avoid heavy jargon unless asked
+
+## UK/US spelling preference
+- UK spelling preferred
+
+## Emojis
+- Never / only with peers / occasionally
+
+## Closings & sign-offs
+- Peers: “Cheers, David”
+- Leadership: “Best regards, David”
+
+## Examples (optional, best)
+Paste 3–5 examples of messages you’ve written. Redact names/emails.
 """
 
 ENV_TEMPLATE = """# Local environment variables for data_swarm
 # Do not commit secrets.
 # OPENAI_API_KEY=
 """
+
+KB_TEMPLATE_FILES = [
+    "org_units.yaml",
+    "role_registry.yaml",
+    "stakeholder_profiles.yaml",
+    "politics_map.yaml",
+    "comms_patterns.yaml",
+]
+
+INLINE_KB_DEFAULTS = {
+    "org_units.yaml": """version: 1
+org_units:
+  - name: "Analytics"
+    mission: "Measurement, modelling, and insights."
+notes:
+  - "Use role tokens only. No personal identifiers."
+""",
+    "role_registry.yaml": """version: 1
+roles:
+  - role_token: "Example Decision Owner"
+    org_unit: "Analytics"
+    mandate: "Define decision ownership."
+notes:
+  - "Add role tokens only. No names/emails."
+""",
+    "stakeholder_profiles.yaml": """version: 1
+profiles:
+  - role_token: "Example Stakeholder Role"
+    goals: ["Deliver outcome"]
+notes:
+  - "Role-level preferences only."
+""",
+    "politics_map.yaml": """version: 1
+relationships: []
+notes:
+  - "Track role-to-role dynamics only."
+""",
+    "comms_patterns.yaml": """version: 1
+patterns:
+  - role_token: "Example Stakeholder Role"
+    do: ["Use concise asks"]
+    dont: ["Use blame language"]
+notes:
+  - "Role-level communication patterns only."
+""",
+}
 
 
 @dataclass
@@ -108,6 +169,25 @@ def _merge(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _seed_kb_templates(root: Path) -> None:
+    """Create KB scaffold in DATA_SWARM_HOME from repo templates or inline defaults."""
+    kb_dir = root / "kb"
+    kb_dir.mkdir(parents=True, exist_ok=True)
+
+    template_dir = detect_repo_root() / "configs" / "kb"
+    for filename in KB_TEMPLATE_FILES:
+        target = kb_dir / filename
+        if target.exists():
+            continue
+
+        source = template_dir / filename
+        if source.exists():
+            target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+            continue
+
+        target.write_text(INLINE_KB_DEFAULTS[filename], encoding="utf-8")
+
+
 def init_home(home: Path | None = None) -> Config:
     """Create data_swarm home scaffold and default config."""
     root = home or default_data_swarm_home()
@@ -122,6 +202,7 @@ def init_home(home: Path | None = None) -> Config:
         tone.write_text(TONE_TEMPLATE, encoding="utf-8")
     if not env_file.exists():
         env_file.write_text(ENV_TEMPLATE, encoding="utf-8")
+    _seed_kb_templates(root)
     return load_config(root)
 
 
