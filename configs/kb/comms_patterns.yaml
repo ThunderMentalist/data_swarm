@@ -1,0 +1,19 @@
+version: 1
+patterns:
+  - role_token: "Econometrics Director"
+    do:
+      - "Lead with evidence and validation plan"
+      - "Use concise, formal tone"
+    dont:
+      - "Overstate certainty"
+      - "Skip data provenance"
+    best_channels: ["email", "meeting"]
+  - role_token: "Client Lead — Retail UK"
+    do:
+      - "Provide options with tradeoffs"
+      - "Confirm timeline and risks early"
+    dont:
+      - "Send long technical dumps in first message"
+    best_channels: ["teams", "email"]
+notes:
+  - "Add role-level comms preferences. No identities."

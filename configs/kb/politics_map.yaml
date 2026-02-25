@@ -1,0 +1,13 @@
+version: 1
+relationships:
+  - from_role: "Econometrics Director"
+    to_role: "Client Lead — Retail UK"
+    stance: "neutral"        # supportive | neutral | resistant | unknown
+    interest: "high"         # low | medium | high
+    influence: "high"        # low | medium | high
+    rationale: "Aligned on delivery quality; tension on timelines."
+    confidence: 0.6
+    evidence_refs:
+      - "task:example_task_id"
+notes:
+  - "Track role-to-role dynamics only. Avoid identities."

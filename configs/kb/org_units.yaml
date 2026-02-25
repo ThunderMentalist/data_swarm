@@ -1,0 +1,13 @@
+version: 1
+org_units:
+  - name: "Analytics"
+    mission: "Measurement, modelling, and insights."
+    kpis: ["Accuracy", "Delivery timeliness", "Client confidence"]
+    typical_requests: ["MMM", "incrementality", "dashboards"]
+    decision_notes: ["Methodology standards owned by role tokens in role_registry.yaml"]
+  - name: "Client Services"
+    mission: "Client relationship, delivery coordination."
+    kpis: ["Client satisfaction", "On-time delivery"]
+    typical_requests: ["Status updates", "Scope negotiation", "Stakeholder alignment"]
+notes:
+  - "Add your organization’s units here. Use role tokens only."
