@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from data_swarm.stages.policy_store import StagePolicyStore
+
 
 @dataclass
 class TriagePolicyPack:
@@ -15,23 +17,13 @@ class TriagePolicyPack:
     decision_trees: list[str]
 
 
-def _load_contents(folder: Path) -> list[str]:
-    if not folder.exists():
-        return []
-    return [path.read_text(encoding="utf-8") for path in sorted(p for p in folder.iterdir() if p.is_file())]
-
-
 def load_policy_pack(home: Path) -> TriagePolicyPack:
     """Load active triage policy materials from DATA_SWARM_HOME."""
-    policy_root = home / "triage_policy"
-    core_path = policy_root / "core_prompt.md"
-    core_prompt = core_path.read_text(encoding="utf-8") if core_path.exists() else ""
-    behaviour_cards = _load_contents(policy_root / "active" / "behaviour_cards")
-    decision_trees = _load_contents(policy_root / "active" / "decision_trees")
+    pack = StagePolicyStore(home, "triage").load_policy_pack()
     return TriagePolicyPack(
-        core_prompt=core_prompt,
-        behaviour_cards=behaviour_cards,
-        decision_trees=decision_trees,
+        core_prompt=pack.core_prompt,
+        behaviour_cards=pack.behaviour_cards,
+        decision_trees=pack.decision_trees,
     )
 
 

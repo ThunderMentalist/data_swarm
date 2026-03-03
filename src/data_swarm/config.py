@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from data_swarm import yaml_compat as yaml
+from data_swarm.stages.policy_store import StagePolicyStore
 from data_swarm.tools.dotenv import load_dotenv
 
 DEFAULT_CONFIG = {
@@ -237,6 +238,13 @@ def _seed_triage_policy_templates(root: Path) -> None:
     if not repetition_path.exists():
         repetition_path.write_text("{}", encoding="utf-8")
 
+
+
+def _seed_stage_policy_scaffolds(root: Path) -> None:
+    """Create policy scaffolds for all agentic stages."""
+    for stage_key in ["triage", "planner", "stakeholder", "navigation", "comms"]:
+        StagePolicyStore(root, stage_key).ensure_scaffold()
+
 def init_home(home: Path | None = None) -> Config:
     """Create data_swarm home scaffold and default config."""
     root = home or default_data_swarm_home()
@@ -253,6 +261,7 @@ def init_home(home: Path | None = None) -> Config:
         env_file.write_text(ENV_TEMPLATE, encoding="utf-8")
     _seed_kb_templates(root)
     _seed_triage_policy_templates(root)
+    _seed_stage_policy_scaffolds(root)
     return load_config(root)
 
 

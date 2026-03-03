@@ -5,12 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+from data_swarm.orchestrator.task_models import TaskState
+
 
 @dataclass
 class StageResult:
     """Result returned by a stage execution."""
 
     approved: bool
+    state_after: TaskState
     artifacts_written: list[str]
 
 

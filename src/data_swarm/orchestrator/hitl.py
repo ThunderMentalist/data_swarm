@@ -40,17 +40,20 @@ def clarification_loop(io: UserIO, questions: list[str]) -> tuple[bool, str, lis
     """Run clarification Q/A loop and ask for final approval."""
     qa_log: list[dict[str, Any]] = []
     for question in questions:
-        answer = io.ask(f"Clarification: {question}\n> ").strip()
-        qa_log.append({"question": question, "answered": bool(answer)})
-    brief = io.ask("Provide approved task brief:\n> ").strip()
+        answer = ask_multiline(io, f"Clarification: {question}")
+        qa_log.append({"question": question, "answered": bool(answer.strip())})
+    brief = ask_multiline(io, "Provide approved task brief:")
     return approve(io, "Approve this brief to proceed?"), brief, qa_log
 
 
 def comms_review(io: UserIO, drafts: dict[str, str]) -> dict[str, dict[str, str]]:
-    """Collect approved comms copy per channel."""
+    """Collect approved comms copy per channel using multiline paste support."""
     reviewed: dict[str, dict[str, str]] = {}
     for channel, draft in drafts.items():
         io.tell(f"\n[{channel}] Draft:\n{draft}\n")
-        edited = io.ask(f"Paste approved {channel} copy (leave blank to accept draft):\n> ").strip()
+        edited = ask_multiline(
+            io,
+            f"Paste approved {channel} copy; END to finish; submit empty (END immediately) to accept draft",
+        )
         reviewed[channel] = {"draft": draft, "approved": edited or draft}
     return reviewed
