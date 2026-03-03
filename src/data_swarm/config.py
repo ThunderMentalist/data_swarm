@@ -14,7 +14,6 @@ DEFAULT_CONFIG = {
     "timezone": "Europe/London",
     "llm": {"provider": "openai", "model": "gpt-4o-mini"},
     "triage": {
-        "confidence_threshold": 0.6,
         "default_sensitivity": "internal",
         "risk_flags": ["timeline", "dependency", "stakeholder_alignment"],
     },
@@ -188,6 +187,56 @@ def _seed_kb_templates(root: Path) -> None:
         target.write_text(INLINE_KB_DEFAULTS[filename], encoding="utf-8")
 
 
+
+
+def _seed_triage_policy_templates(root: Path) -> None:
+    """Create triage policy scaffold in DATA_SWARM_HOME."""
+    triage_root = root / "triage_policy"
+    (triage_root / "active" / "behaviour_cards").mkdir(parents=True, exist_ok=True)
+    (triage_root / "active" / "decision_trees").mkdir(parents=True, exist_ok=True)
+    (triage_root / "archive" / "behaviour_cards").mkdir(parents=True, exist_ok=True)
+    (triage_root / "archive" / "decision_trees").mkdir(parents=True, exist_ok=True)
+    history_dir = triage_root / "history"
+    history_dir.mkdir(parents=True, exist_ok=True)
+
+    template_dir = detect_repo_root() / "configs" / "triage_policy"
+    files = {
+        triage_root / "core_prompt.md": template_dir / "core_prompt.md",
+        triage_root / "active" / "behaviour_cards" / "example.md": (
+            template_dir / "active" / "behaviour_cards" / "example.md"
+        ),
+        triage_root / "active" / "decision_trees" / "example.yaml": (
+            template_dir / "active" / "decision_trees" / "example.yaml"
+        ),
+    }
+    inline_defaults = {
+        triage_root / "core_prompt.md": (
+            "# Triage Policy Core\n\n"
+            "Focus on explicit user consent before progression.\n"
+        ),
+        triage_root / "active" / "behaviour_cards" / "example.md": (
+            "# Behaviour Card: Clarify Outcomes\n\n"
+            "Ask for measurable success criteria before planning.\n"
+        ),
+        triage_root / "active" / "decision_trees" / "example.yaml": (
+            "version: 1\nsteps:\n  - ask: Is goal explicit?\n    action: capture goal\n"
+        ),
+    }
+    for target, source in files.items():
+        if target.exists():
+            continue
+        if source.exists():
+            target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+        else:
+            target.write_text(inline_defaults[target], encoding="utf-8")
+
+    history_file = history_dir / "triage_change_requests.jsonl"
+    history_file.touch(exist_ok=True)
+
+    repetition_path = history_dir / "repetition_index.json"
+    if not repetition_path.exists():
+        repetition_path.write_text("{}", encoding="utf-8")
+
 def init_home(home: Path | None = None) -> Config:
     """Create data_swarm home scaffold and default config."""
     root = home or default_data_swarm_home()
@@ -203,6 +252,7 @@ def init_home(home: Path | None = None) -> Config:
     if not env_file.exists():
         env_file.write_text(ENV_TEMPLATE, encoding="utf-8")
     _seed_kb_templates(root)
+    _seed_triage_policy_templates(root)
     return load_config(root)
 
 

@@ -1,0 +1,5 @@
+version: 1
+nodes:
+  - question: "Is the goal explicit?"
+    yes: "Continue triage"
+    no: "Ask goal clarification"
