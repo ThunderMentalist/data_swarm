@@ -24,7 +24,7 @@ All state changes are validated and persisted with `state_transition` JSONL even
 
 ## HITL modes
 
-1. **Clarification loop:** triage questions, then explicit approval to proceed.
+1. **Triage stage approval gate:** triage questions run until explicit approval to proceed; no confidence threshold gating.
 2. **Comms review:** drafts are generated per channel and both draft + approved copies are stored.
 3. **Code/bug approvals:** patch approval before apply, and additional approval after test failures before debug iteration.
 

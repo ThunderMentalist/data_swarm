@@ -12,6 +12,17 @@ class StakeholderConciergeAgent:
     name = "Stakeholder Concierge Agent"
 
     @staticmethod
+    def initial_map() -> str:
+        """Create a deterministic initial stakeholder map scaffold."""
+        return (
+            "roles:\n"
+            "  - role: Client Lead\n"
+            "    influence: high\n"
+            "    interest: high\n"
+            "    approach: Keep weekly updates"
+        )
+
+    @staticmethod
     def snapshot(content: str) -> dict[str, str]:
         """Create YAML snapshot record."""
         return {
