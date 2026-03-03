@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 from data_swarm import yaml_compat as yaml
-from data_swarm.agents.planner import PlannerAgent
 from data_swarm.orchestrator.hitl import ask_multiline, ask_yes_no
 from data_swarm.orchestrator.task_models import Task, TaskState
 from data_swarm.orchestrator.transitions import apply_transition
@@ -52,7 +51,7 @@ class PlannerStage(AgenticStage):
             rows = self._read_jsonl(history_path)
             current_plan = concierge.load_last_snapshot(rows)
         else:
-            current_plan = PlannerAgent().run(task.title).content
+            current_plan = concierge.initial_plan(task.title)
 
         artifacts: list[str] = []
         if not initial_path.exists():

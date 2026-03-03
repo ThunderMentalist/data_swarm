@@ -12,6 +12,16 @@ class PlannerConciergeAgent:
 
     name = "Planner Concierge Agent"
 
+    @staticmethod
+    def initial_plan(title: str) -> str:
+        """Create a deterministic initial planning scaffold."""
+        return (
+            f"Plan for: {title}\n"
+            "1. Validate requirements\n"
+            "2. Execute staged workflow\n"
+            "3. Review outputs"
+        )
+
     def next_questions(self, plan_text: str) -> list[str]:
         """Return targeted planning questions."""
         del plan_text

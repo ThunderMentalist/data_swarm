@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 from data_swarm import yaml_compat as yaml
-from data_swarm.agents.stakeholder_map import StakeholderMapAgent
 from data_swarm.orchestrator.hitl import ask_multiline, ask_yes_no
 from data_swarm.orchestrator.task_models import Task, TaskState
 from data_swarm.orchestrator.transitions import apply_transition
@@ -50,7 +49,7 @@ class StakeholderStage(AgenticStage):
         if history_path.exists():
             current = self._read_jsonl(history_path)[-1].get("content", "")
         else:
-            current = StakeholderMapAgent().run().content
+            current = concierge.initial_map()
 
         artifacts: list[str] = []
         if not initial_path.exists():

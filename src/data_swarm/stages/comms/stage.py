@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 from data_swarm import yaml_compat as yaml
-from data_swarm.agents.communication import CommunicationAgent
 from data_swarm.orchestrator.hitl import ask_yes_no, comms_review
 from data_swarm.orchestrator.task_models import Task, TaskState
 from data_swarm.orchestrator.transitions import apply_transition
@@ -45,7 +44,9 @@ class CommsStage(AgenticStage):
         curator = CommsCuratorAgent()
         change = CommsChangeAgent()
 
-        draft_email = CommunicationAgent().run(self.home / "tone_profile.md", task.description).content
+        tone_profile_path = self.home / "tone_profile.md"
+        tone_profile = tone_profile_path.read_text(encoding="utf-8") if tone_profile_path.exists() else "Diplomatic"
+        draft_email = concierge.initial_email_draft(task.title, task.description, tone_profile)
         drafts = {
             "email": draft_email,
             "teams": "Short update: " + task.title,

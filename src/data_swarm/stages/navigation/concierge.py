@@ -11,6 +11,16 @@ class NavigationConciergeAgent:
 
     name = "Navigation Concierge Agent"
 
+    @staticmethod
+    def initial_plan() -> str:
+        """Create a deterministic initial navigation scaffold."""
+        return (
+            "Outreach sequence:\n"
+            "1) Supporters\n"
+            "2) Neutral stakeholders\n"
+            "Escalation: 48h nudge then manager alignment"
+        )
+
     def next_questions(self) -> list[str]:
         """Return targeted navigation questions."""
         return [

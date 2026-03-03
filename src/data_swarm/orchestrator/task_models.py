@@ -36,7 +36,6 @@ class Task:
     urgency: str = "medium"
     impact: str = "medium"
     sensitivity: str = "internal"
-    confidence: float = 0.0
     clarifying_questions: list[str] = field(default_factory=list)
     stakeholders: list[str] = field(default_factory=list)
     assumptions: list[str] = field(default_factory=list)
@@ -56,4 +55,5 @@ class Task:
         """Deserialize task object."""
         data = dict(payload)
         data["state"] = TaskState(data.get("state", TaskState.NEW.value))
+        data.pop("confidence", None)
         return cls(**data)
