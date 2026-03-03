@@ -12,14 +12,15 @@ from data_swarm.agents.feedback import FeedbackAgent
 from data_swarm.agents.navigation import NavigationAgent
 from data_swarm.agents.planner import PlannerAgent
 from data_swarm.agents.stakeholder_map import StakeholderMapAgent
-from data_swarm.agents.triage import TriageAgent
-from data_swarm.orchestrator.hitl import clarification_loop, comms_review
+from data_swarm.orchestrator.hitl import comms_review
 from data_swarm.orchestrator.task_models import TaskState
 from data_swarm.orchestrator.transitions import apply_transition
+from data_swarm.stages.triage.stage import TriageStage
 from data_swarm.stores.log_store import LogStore
 from data_swarm.stores.memory_store import MemoryStore
 from data_swarm.stores.task_store import TaskStore
 from data_swarm.tools.io import ConsoleIO, UserIO
+from data_swarm.tools.redaction import sanitize_feedback
 
 
 def _event(logs: LogStore, task_id: str, stage: str, event_type: str, message: str, data: dict | None = None) -> None:
@@ -35,32 +36,17 @@ def run_task(task_id: str, config: dict, home: Path, io: UserIO | None = None) -
     logs = LogStore(task_dir)
     memory = MemoryStore(home)
 
-    _event(logs, task_id, "triage", "stage_start", "triage started")
-    triage = TriageAgent().run(task.description)
-    (task_dir / "00_intake" / "00_intake.md").write_text(task.description, encoding="utf-8")
-    triage_questions = [line for line in triage.content.splitlines() if line.strip()]
-    (task_dir / "01_triage" / "01_triage.json").write_text(
-        json.dumps({"confidence": triage.confidence, "questions": triage_questions}, indent=2),
-        encoding="utf-8",
-    )
-    _event(logs, task_id, "triage", "stage_complete", "triage finished", {"confidence": triage.confidence})
+    intake_path = task_dir / "00_intake" / "00_intake.md"
+    if not intake_path.exists():
+        sanitized_intake, _ = sanitize_feedback(task.description, io)
+        intake_path.write_text(sanitized_intake, encoding="utf-8")
 
-    if triage.confidence < config.get("triage", {}).get("confidence_threshold", 0.6):
-        apply_transition(
-            task,
-            TaskState.NEEDS_CLARIFICATION,
-            "triage below confidence threshold",
-            ["01_triage/01_triage.json"],
-            store,
-            logs,
-            "triage",
-        )
-        approved, brief, qa_log = clarification_loop(io, triage_questions)
-        (task_dir / "01_triage" / "01_task_brief.md").write_text(brief, encoding="utf-8")
-        (task_dir / "01_triage" / "01_approved_intent.json").write_text(
-            json.dumps({"approved": approved, "qa_log": qa_log}, indent=2),
-            encoding="utf-8",
-        )
+    _event(logs, task_id, "triage", "stage_start", "triage started")
+    triage_result = TriageStage(config=config, home=home, io=io, store=store, logs=logs).run(task, task_dir)
+    _event(logs, task_id, "triage", "stage_complete", "triage finished", {"approved": triage_result.approved})
+    if not triage_result.approved:
+        logs.run_log("pipeline stopped: triage not approved")
+        return
 
     _event(logs, task_id, "planner", "stage_start", "planning started")
     plan = PlannerAgent().run(task.title)

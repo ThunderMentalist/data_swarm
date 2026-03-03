@@ -7,9 +7,33 @@ from typing import Any
 from data_swarm.tools.io import UserIO
 
 
+def ask_yes_no(io: UserIO, prompt: str, default_no: bool = True) -> bool:
+    """Request binary approval from user and return True only for explicit yes."""
+    suffix = " [y/N]: " if default_no else " [Y/n]: "
+    answer = io.ask(f"{prompt}{suffix}").strip().lower()
+    if answer == "y":
+        return True
+    if not answer and not default_no:
+        return True
+    return False
+
+
+def ask_multiline(io: UserIO, prompt: str, end_token: str = "END") -> str:
+    """Capture multiline input until end token is entered on its own line."""
+    io.tell(prompt)
+    io.tell(f"(Paste text. End with a line containing only {end_token})")
+    lines: list[str] = []
+    while True:
+        line = io.ask("> ")
+        if line.strip() == end_token:
+            break
+        lines.append(line)
+    return "\n".join(lines).rstrip()
+
+
 def approve(io: UserIO, prompt: str) -> bool:
     """Request binary approval from user."""
-    return io.ask(f"{prompt} [y/N]: ").strip().lower() == "y"
+    return ask_yes_no(io, prompt, default_no=True)
 
 
 def clarification_loop(io: UserIO, questions: list[str]) -> tuple[bool, str, list[dict[str, Any]]]:
