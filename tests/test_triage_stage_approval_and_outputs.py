@@ -27,15 +27,17 @@ def test_triage_stage_approval_generates_outputs_and_continues(tmp_path: Path) -
 
     answers = [
         "",  # intake additional names prompt
-        "Goal text", "END",
-        "Deliverable text", "END",
-        "Audience text", "END",
-        "Deadline text", "END",
-        "Success 1", "END",
-        "Constraints 1", "END",
-        "Inputs 1", "END",
-        "y",
-        "", "", "", "",  # comms review prompts
+        # triage
+        "Goal text", "END", "Deliverable text", "END", "Audience text", "END", "Deadline text", "END",
+        "Success 1", "END", "Constraints 1", "END", "Inputs 1", "END", "y",
+        # planner
+        "deadline", "END", "success", "END", "risk", "END", "deps", "END", "y",
+        # stakeholder
+        "", "END", "y",
+        # navigation
+        "first", "END", "sequence", "END", "risk", "END", "", "END", "y",
+        # comms
+        "", "END", "", "END", "", "END", "", "END", "y",
         "",  # feedback summary
         "",  # feedback additional names prompt
     ]

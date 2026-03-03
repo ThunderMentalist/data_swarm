@@ -49,7 +49,7 @@ def test_triage_stage_resume_appends_history(tmp_path: Path) -> None:
     first_count = len([line for line in history_path.read_text(encoding="utf-8").splitlines() if line.strip()])
 
     second_io = FakeIO(
-        answers=["", "END", "", "END", "", "END", "y", "", "", "", "", "", ""]
+        answers=["", "END", "", "END", "", "END", "y", "deadline", "END", "success", "END", "risk", "END", "dep", "END", "y", "", "END", "y", "first", "END", "seq", "END", "risk", "END", "", "END", "y", "", "END", "", "END", "", "END", "", "END", "y", "", ""]
     )
     run_task(task.task_id, config={}, home=home, io=second_io)
     second_count = len([line for line in history_path.read_text(encoding="utf-8").splitlines() if line.strip()])

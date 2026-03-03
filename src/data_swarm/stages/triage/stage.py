@@ -49,7 +49,7 @@ class TriageStage(AgenticStage):
 
         final_brief_path = triage_dir / "final_brief.json"
         if final_brief_path.exists():
-            return StageResult(approved=True, artifacts_written=["01_triage/final_brief.json"])
+            return StageResult(approved=True, state_after=task.state, artifacts_written=["01_triage/final_brief.json"])
 
         intake_text = self._load_intake_text(task, task_dir)
         initial_input = redact_identifiers(intake_text)
@@ -116,7 +116,7 @@ class TriageStage(AgenticStage):
                     self.logs,
                     self.name,
                 )
-            return StageResult(approved=False, artifacts_written=sorted(set(artifacts_written)))
+            return StageResult(approved=False, state_after=task.state, artifacts_written=sorted(set(artifacts_written)))
 
         self._write_json(final_brief_path, current_brief.to_dict())
         artifacts_written.append("01_triage/final_brief.json")
@@ -146,7 +146,7 @@ class TriageStage(AgenticStage):
             "Change Request available: "
             f"{change_path} (optional to review; nothing auto-applied)"
         )
-        return StageResult(approved=True, artifacts_written=sorted(set(artifacts_written)))
+        return StageResult(approved=True, state_after=task.state, artifacts_written=sorted(set(artifacts_written)))
 
     def _load_intake_text(self, task: Task, task_dir: Path) -> str:
         intake_path = task_dir / "00_intake" / "00_intake.md"
