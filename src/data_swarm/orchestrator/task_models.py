@@ -13,6 +13,7 @@ class TaskState(str, Enum):
 
     NEW = "NEW"
     NEEDS_CLARIFICATION = "NEEDS_CLARIFICATION"
+    TRIAGED = "TRIAGED"
     PLANNED = "PLANNED"
     OUTREACH_PENDING_REVIEW = "OUTREACH_PENDING_REVIEW"
     AWAITING_REPLIES = "AWAITING_REPLIES"
@@ -55,5 +56,4 @@ class Task:
         """Deserialize task object."""
         data = dict(payload)
         data["state"] = TaskState(data.get("state", TaskState.NEW.value))
-        data.pop("confidence", None)
         return cls(**data)

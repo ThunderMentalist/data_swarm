@@ -19,6 +19,7 @@ def test_planner_stage_requires_approval(tmp_path: Path) -> None:
 
     plan_dir = task_dir / "02_plan"
     assert (plan_dir / "initial_plan.md").exists()
-    assert (plan_dir / "plan_history.jsonl").exists()
+    assert (plan_dir / "draft_plan.md").exists()
     assert not (plan_dir / "02_plan.md").exists()
+    assert (plan_dir / "iterations.jsonl").exists()
     assert result.approved is False

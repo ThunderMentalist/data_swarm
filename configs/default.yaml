@@ -3,7 +3,6 @@ llm:
   provider: openai
   model: gpt-4o-mini
 triage:
-  confidence_threshold: 0.6
   default_sensitivity: internal
   risk_flags:
     - timeline

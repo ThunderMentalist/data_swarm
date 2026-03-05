@@ -5,8 +5,8 @@ from data_swarm.orchestrator.task_models import TaskState
 
 
 def test_allowed_transition() -> None:
-    record = transition(TaskState.NEW, TaskState.PLANNED, "ok", [])
-    assert record.to_state == "PLANNED"
+    record = transition(TaskState.NEW, TaskState.TRIAGED, "ok", [])
+    assert record.to_state == "TRIAGED"
 
 
 def test_invalid_transition() -> None:
