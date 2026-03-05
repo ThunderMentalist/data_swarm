@@ -19,6 +19,7 @@ def test_stakeholder_stage_requires_approval(tmp_path: Path) -> None:
 
     stage_dir = task_dir / "03_stakeholders"
     assert (stage_dir / "initial_stakeholders.yaml").exists()
-    assert (stage_dir / "stakeholders_history.jsonl").exists()
+    assert (stage_dir / "draft_stakeholders.yaml").exists()
     assert not (stage_dir / "03_stakeholders.yaml").exists()
+    assert (stage_dir / "iterations.jsonl").exists()
     assert result.approved is False

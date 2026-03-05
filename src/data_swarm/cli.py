@@ -38,6 +38,13 @@ def _cmd_task_status(args: argparse.Namespace) -> None:
     print(f"{task.task_id}: {task.state.value}")
 
 
+def _cmd_task_attach(args: argparse.Namespace) -> None:
+    cfg = load_config()
+    store = TaskStore(cfg.data_swarm_home)
+    row = store.register_attachment(args.task_id, Path(args.file), notes=args.notes or "")
+    print(f"registered {row['filename']} ({row['sha256'][:8]})")
+
+
 def _cmd_index_build(_: argparse.Namespace) -> None:
     cfg = load_config()
     idx = cfg.data_swarm_home / "indexes" / "meridian" / "index.sqlite"
@@ -63,6 +70,10 @@ def main() -> None:
     run.add_argument("task_id")
     status = task_sub.add_parser("status")
     status.add_argument("task_id")
+    attach = task_sub.add_parser("attach")
+    attach.add_argument("task_id")
+    attach.add_argument("file")
+    attach.add_argument("--notes", default="")
 
     index = sub.add_parser("index")
     index_sub = index.add_subparsers(dest="index_cmd", required=True)
@@ -77,6 +88,8 @@ def main() -> None:
         _cmd_task_run(args)
     elif args.cmd == "task" and args.task_cmd == "status":
         _cmd_task_status(args)
+    elif args.cmd == "task" and args.task_cmd == "attach":
+        _cmd_task_attach(args)
     elif args.cmd == "index" and args.index_cmd == "build":
         _cmd_index_build(args)
 

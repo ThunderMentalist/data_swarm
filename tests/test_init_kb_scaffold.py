@@ -8,6 +8,7 @@ EXPECTED_KB_FILES = {
     "stakeholder_profiles.yaml",
     "politics_map.yaml",
     "comms_patterns.yaml",
+    "personas.yaml",
 }
 
 

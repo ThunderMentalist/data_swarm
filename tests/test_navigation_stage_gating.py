@@ -19,6 +19,7 @@ def test_navigation_stage_requires_approval(tmp_path: Path) -> None:
 
     stage_dir = task_dir / "04_navigation"
     assert (stage_dir / "initial_navigation.md").exists()
-    assert (stage_dir / "navigation_history.jsonl").exists()
+    assert (stage_dir / "draft_navigation.md").exists()
+    assert (stage_dir / "iterations.jsonl").exists()
     assert not (stage_dir / "04_navigation.md").exists()
     assert result.approved is False

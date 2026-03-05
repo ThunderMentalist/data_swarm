@@ -8,8 +8,9 @@ from datetime import datetime, timezone
 from data_swarm.orchestrator.task_models import TaskState
 
 ALLOWED_TRANSITIONS: dict[TaskState, set[TaskState]] = {
-    TaskState.NEW: {TaskState.NEEDS_CLARIFICATION, TaskState.PLANNED},
-    TaskState.NEEDS_CLARIFICATION: {TaskState.PLANNED, TaskState.BLOCKED},
+    TaskState.NEW: {TaskState.NEEDS_CLARIFICATION, TaskState.TRIAGED},
+    TaskState.NEEDS_CLARIFICATION: {TaskState.TRIAGED, TaskState.BLOCKED},
+    TaskState.TRIAGED: {TaskState.PLANNED, TaskState.REPLANNING},
     TaskState.PLANNED: {TaskState.OUTREACH_PENDING_REVIEW, TaskState.REPLANNING},
     TaskState.OUTREACH_PENDING_REVIEW: {TaskState.AWAITING_REPLIES, TaskState.REPLANNING},
     TaskState.AWAITING_REPLIES: {TaskState.REPLANNING, TaskState.READY_TO_DELIVER},

@@ -82,6 +82,7 @@ KB_TEMPLATE_FILES = [
     "stakeholder_profiles.yaml",
     "politics_map.yaml",
     "comms_patterns.yaml",
+    "personas.yaml",
 ]
 
 INLINE_KB_DEFAULTS = {
@@ -119,6 +120,11 @@ patterns:
     dont: ["Use blame language"]
 notes:
   - "Role-level communication patterns only."
+""",
+    "personas.yaml": """version: 1
+personas: []
+notes:
+  - "Persona tokens only. Never names/emails."
 """,
 }
 
@@ -242,7 +248,7 @@ def _seed_triage_policy_templates(root: Path) -> None:
 
 def _seed_stage_policy_scaffolds(root: Path) -> None:
     """Create policy scaffolds for all agentic stages."""
-    for stage_key in ["triage", "planner", "stakeholder", "navigation", "comms"]:
+    for stage_key in ["triage", "planner", "stakeholder", "navigation", "comms", "feedback"]:
         StagePolicyStore(root, stage_key).ensure_scaffold()
 
 def init_home(home: Path | None = None) -> Config:
