@@ -30,7 +30,7 @@ class TaskStore:
             "03_stakeholders",
             "04_navigation",
             "05_comms",
-            "06_feedback",
+            "06_reaction",
             "07_deliverable",
             "08_logs",
             "inputs",
@@ -39,6 +39,9 @@ class TaskStore:
         manifest = folder / "inputs" / "attachments.json"
         if not manifest.exists():
             manifest.write_text("[]", encoding="utf-8")
+        raw_input = folder / "00_intake" / "raw_input.md"
+        if not raw_input.exists():
+            raw_input.write_text(task.description + "\n", encoding="utf-8")
         self.save(task)
         return folder
 

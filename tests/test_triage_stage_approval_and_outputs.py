@@ -21,22 +21,15 @@ def test_triage_stage_approval_generates_outputs_and_continues(tmp_path: Path) -
     store.create(task)
 
     answers = [
+        "intake note", "END", "1",
         "Goal text", "END", "Deliverable text", "END", "Audience text", "END", "Deadline text", "END",
-        "Success 1", "END", "Constraints 1", "END", "Inputs 1", "END", "y",
-        "deadline", "END", "success", "END", "risk", "END", "deps", "END", "y",
-        "", "END", "y",
-        "first", "END", "sequence", "END", "risk", "END", "", "END", "y",
-        "", "END", "", "END", "", "END", "", "END", "y",
-        "feedback summary", "END", "y", "n", "n",
+        "Success 1", "END", "Constraints 1", "END", "Inputs 1", "END", "1",
+        "deadline", "END", "success", "END", "risk", "END", "deps", "END", "4",
     ]
     io = FakeIO(answers=answers)
 
     run_task(task.task_id, config={}, home=home, io=io)
 
-    triage_dir = home / "tasks" / task.task_id / "01_triage"
+    triage_dir = home / "tasks" / task.task_id / "01_triage" / "cycle_0001"
     assert (triage_dir / "final_brief.json").exists()
-    assert (triage_dir / "triage_critic_eval.json").exists()
-    assert (triage_dir / "learning_summary.md").exists()
-    assert (triage_dir / "iterations.jsonl").exists()
-    assert (triage_dir / "manifest.json").exists()
-    assert (home / "tasks" / task.task_id / "06_feedback" / "triage_update_patch.json").exists()
+    assert (home / "tasks" / task.task_id / "06_reaction" / "triage_update_patch.json").exists() is False

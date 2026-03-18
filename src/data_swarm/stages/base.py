@@ -15,6 +15,7 @@ class StageResult:
     approved: bool
     state_after: TaskState
     artifacts_written: list[str]
+    skipped: bool = False
 
 
 class ConciergeAgentBase(Protocol):

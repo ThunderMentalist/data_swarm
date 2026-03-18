@@ -9,6 +9,11 @@ def test_allowed_transition() -> None:
     assert record.to_state == "TRIAGED"
 
 
+def test_active_to_closed_allowed() -> None:
+    record = transition(TaskState.NEW, TaskState.CLOSED, "ok", [])
+    assert record.to_state == "CLOSED"
+
+
 def test_invalid_transition() -> None:
     with pytest.raises(InvalidTransitionError):
-        transition(TaskState.NEW, TaskState.CLOSED, "bad", [])
+        transition(TaskState.CLOSED, TaskState.DELIVERED, "bad", [])

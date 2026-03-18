@@ -38,7 +38,7 @@ class StakeholderStage(AgenticStage):
         critic = StakeholderCriticAgent()
         curator = StakeholderCuratorAgent()
         change = StakeholderChangeAgent()
-        harness = StageHarness(StageSpec("stakeholder", "03_stakeholders", "initial_stakeholders.yaml", "draft_stakeholders.yaml", "03_stakeholders.yaml", [], lambda _t: TaskState.NEEDS_CLARIFICATION), self.io, self.store, self.logs, self.anonymizer)
+        harness = StageHarness(StageSpec("stakeholder", "03_stakeholders", "initial_stakeholders.yaml", "draft_stakeholders.yaml", "03_stakeholders.yaml", []), self.io, self.store, self.logs, self.anonymizer)
 
         def make_initial(_ctx):
             return concierge.initial_map()

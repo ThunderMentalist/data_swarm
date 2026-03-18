@@ -7,25 +7,35 @@ from datetime import datetime, timezone
 
 from data_swarm.orchestrator.task_models import TaskState
 
+ACTIVE_STATES = {
+    TaskState.NEW,
+    TaskState.NEEDS_CLARIFICATION,
+    TaskState.TRIAGED,
+    TaskState.PLANNED,
+    TaskState.OUTREACH_PENDING_REVIEW,
+    TaskState.AWAITING_REPLIES,
+    TaskState.REPLANNING,
+    TaskState.READY_TO_DELIVER,
+    TaskState.DELIVERED,
+}
+
 ALLOWED_TRANSITIONS: dict[TaskState, set[TaskState]] = {
-    TaskState.NEW: {TaskState.NEEDS_CLARIFICATION, TaskState.TRIAGED},
-    TaskState.NEEDS_CLARIFICATION: {TaskState.TRIAGED, TaskState.BLOCKED},
-    TaskState.TRIAGED: {TaskState.PLANNED, TaskState.REPLANNING},
-    TaskState.PLANNED: {TaskState.OUTREACH_PENDING_REVIEW, TaskState.REPLANNING},
-    TaskState.OUTREACH_PENDING_REVIEW: {TaskState.AWAITING_REPLIES, TaskState.REPLANNING},
-    TaskState.AWAITING_REPLIES: {TaskState.REPLANNING, TaskState.READY_TO_DELIVER},
-    TaskState.REPLANNING: {TaskState.OUTREACH_PENDING_REVIEW, TaskState.READY_TO_DELIVER, TaskState.BLOCKED},
+    TaskState.NEW: {TaskState.NEEDS_CLARIFICATION, TaskState.TRIAGED, TaskState.BLOCKED, TaskState.CLOSED},
+    TaskState.NEEDS_CLARIFICATION: {TaskState.TRIAGED, TaskState.BLOCKED, TaskState.CLOSED},
+    TaskState.TRIAGED: {TaskState.PLANNED, TaskState.REPLANNING, TaskState.BLOCKED, TaskState.CLOSED},
+    TaskState.PLANNED: {TaskState.OUTREACH_PENDING_REVIEW, TaskState.REPLANNING, TaskState.BLOCKED, TaskState.CLOSED},
+    TaskState.OUTREACH_PENDING_REVIEW: {TaskState.AWAITING_REPLIES, TaskState.REPLANNING, TaskState.BLOCKED, TaskState.CLOSED},
+    TaskState.AWAITING_REPLIES: {TaskState.REPLANNING, TaskState.READY_TO_DELIVER, TaskState.BLOCKED, TaskState.CLOSED},
+    TaskState.REPLANNING: {TaskState.OUTREACH_PENDING_REVIEW, TaskState.READY_TO_DELIVER, TaskState.BLOCKED, TaskState.CLOSED},
     TaskState.BLOCKED: {TaskState.REPLANNING, TaskState.CLOSED},
-    TaskState.READY_TO_DELIVER: {TaskState.DELIVERED, TaskState.BLOCKED},
-    TaskState.DELIVERED: {TaskState.CLOSED, TaskState.REPLANNING},
-    TaskState.CLOSED: set(),
+    TaskState.READY_TO_DELIVER: {TaskState.DELIVERED, TaskState.BLOCKED, TaskState.CLOSED},
+    TaskState.DELIVERED: {TaskState.CLOSED, TaskState.REPLANNING, TaskState.BLOCKED},
+    TaskState.CLOSED: {TaskState.REPLANNING},
 }
 
 
 @dataclass
 class TransitionRecord:
-    """State transition log item."""
-
     from_state: str
     to_state: str
     reason: str
@@ -38,7 +48,6 @@ class InvalidTransitionError(ValueError):
 
 
 def transition(current: TaskState, target: TaskState, reason: str, artifacts: list[str]) -> TransitionRecord:
-    """Validate and return a transition record."""
     if target not in ALLOWED_TRANSITIONS[current]:
         raise InvalidTransitionError(f"Cannot move from {current.value} to {target.value}")
     return TransitionRecord(

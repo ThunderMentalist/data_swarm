@@ -29,8 +29,10 @@ DEFAULT_CONFIG = {
         "leadership_style": "formal_concise",
         "political_two_variant": True,
     },
-    "privacy": {"persist_identifiers": False, "require_role_mapping": True},
+    "privacy": {"persist_identifiers": False, "require_role_mapping": True, "default_persona_token_format": "JD | Role | Org | Region"},
     "meridian_aux": {"max_files": 25, "max_chars": 60000, "max_debug_iterations": 3},
+    "attachment_ingest": {"enabled": True, "max_chars_per_file": 20000, "max_files": 25},
+    "run_mode": "INITIAL_USING",
     "logging": {"level": "INFO"},
     "safety": {"never_write_outside_repo": True},
 }
@@ -248,7 +250,7 @@ def _seed_triage_policy_templates(root: Path) -> None:
 
 def _seed_stage_policy_scaffolds(root: Path) -> None:
     """Create policy scaffolds for all agentic stages."""
-    for stage_key in ["triage", "planner", "stakeholder", "navigation", "comms", "feedback"]:
+    for stage_key in ["intake_refine", "triage", "planner", "stakeholder", "navigation", "comms", "reaction"]:
         StagePolicyStore(root, stage_key).ensure_scaffold()
 
 def init_home(home: Path | None = None) -> Config:

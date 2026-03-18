@@ -15,11 +15,11 @@ def test_comms_stage_requires_approval(tmp_path: Path) -> None:
     store = TaskStore(home)
     task = Task(task_id="c1", title="Comms", description="desc", state=TaskState.PLANNED)
     task_dir = store.create(task)
-    io = FakeIO(answers=["", "END", "", "END", "", "END", "", "END", "n"])
+    io = FakeIO(answers=["", "END", "", "END", "", "END", "", "END", "4"])
 
     result = CommsStage(config={}, home=home, io=io, store=store, logs=LogStore(task_dir)).run(task, task_dir)
 
     payload = json.loads((task_dir / "task.json").read_text(encoding="utf-8"))
-    assert payload["state"] == TaskState.REPLANNING.value
-    assert not (task_dir / "05_comms" / "final_comms.json").exists()
+    assert payload["state"] == TaskState.BLOCKED.value
+    assert not (task_dir / "05_comms" / "cycle_0001" / "final_comms.json").exists()
     assert result.approved is False

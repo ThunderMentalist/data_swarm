@@ -38,7 +38,7 @@ class NavigationStage(AgenticStage):
         critic = NavigationCriticAgent()
         curator = NavigationCuratorAgent()
         change = NavigationChangeAgent()
-        harness = StageHarness(StageSpec("navigation", "04_navigation", "initial_navigation.md", "draft_navigation.md", "04_navigation.md", [TaskState.PLANNED], lambda t: TaskState.REPLANNING if t.state in {TaskState.PLANNED, TaskState.OUTREACH_PENDING_REVIEW, TaskState.AWAITING_REPLIES} else TaskState.NEEDS_CLARIFICATION), self.io, self.store, self.logs, self.anonymizer)
+        harness = StageHarness(StageSpec("navigation", "04_navigation", "initial_navigation.md", "draft_navigation.md", "04_navigation.md", [TaskState.PLANNED]), self.io, self.store, self.logs, self.anonymizer)
 
         def make_initial(_ctx):
             return concierge.initial_plan()

@@ -38,7 +38,7 @@ class CommsStage(AgenticStage):
         critic = CommsCriticAgent()
         curator = CommsCuratorAgent()
         change = CommsChangeAgent()
-        harness = StageHarness(StageSpec("comms", "05_comms", "initial_drafts.json", "draft_comms.json", "final_comms.json", [TaskState.OUTREACH_PENDING_REVIEW, TaskState.AWAITING_REPLIES], lambda t: TaskState.REPLANNING if t.state in {TaskState.PLANNED, TaskState.OUTREACH_PENDING_REVIEW, TaskState.AWAITING_REPLIES} else TaskState.NEEDS_CLARIFICATION), self.io, self.store, self.logs, self.anonymizer)
+        harness = StageHarness(StageSpec("comms", "05_comms", "initial_drafts.json", "draft_comms.json", "final_comms.json", [TaskState.OUTREACH_PENDING_REVIEW, TaskState.AWAITING_REPLIES]), self.io, self.store, self.logs, self.anonymizer)
 
         def make_initial(_ctx):
             tone_path = self.home / "tone_profile.md"

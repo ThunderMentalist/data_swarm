@@ -43,6 +43,14 @@ class Task:
     unknowns: list[str] = field(default_factory=list)
     dependencies: list[str] = field(default_factory=list)
     state: TaskState = TaskState.NEW
+    run_mode: str = ""
+    is_demo: bool = False
+    cycle_id: int = 1
+    raw_input_path: str = "00_intake/raw_input.md"
+    refined_task_path: str = "00_intake/refined_task.md"
+    refined_context_path: str = "00_intake/context.yaml"
+    attachments_summary_path: str = "00_intake/attachments_summary.md"
+    refined_task_digest: str = ""
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
@@ -56,4 +64,12 @@ class Task:
         """Deserialize task object."""
         data = dict(payload)
         data["state"] = TaskState(data.get("state", TaskState.NEW.value))
+        data.setdefault("run_mode", "")
+        data.setdefault("is_demo", False)
+        data.setdefault("cycle_id", 1)
+        data.setdefault("raw_input_path", "00_intake/raw_input.md")
+        data.setdefault("refined_task_path", "00_intake/refined_task.md")
+        data.setdefault("refined_context_path", "00_intake/context.yaml")
+        data.setdefault("attachments_summary_path", "00_intake/attachments_summary.md")
+        data.setdefault("refined_task_digest", "")
         return cls(**data)

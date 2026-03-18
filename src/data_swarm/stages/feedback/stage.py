@@ -32,7 +32,7 @@ class FeedbackStage(AgenticStage):
         kb = kb or {}
         attachments = attachments or []
         policy = load_stage_policy(self.home, self.name)
-        harness = StageHarness(StageSpec("feedback", "06_feedback", "initial_feedback.json", "draft_feedback.json", "final_feedback.json", [], lambda _t: TaskState.REPLANNING), self.io, self.store, self.logs, self.anonymizer)
+        harness = StageHarness(StageSpec("feedback", "06_feedback", "initial_feedback.json", "draft_feedback.json", "final_feedback.json", []), self.io, self.store, self.logs, self.anonymizer)
 
         def make_initial(_ctx):
             return {"summary": "", "facts": [], "decisions": [], "open_questions": [], "commitments": [], "blockers": []}
@@ -58,6 +58,6 @@ class FeedbackStage(AgenticStage):
                 "recommended_brief_updates": final.get("facts", []),
                 "suggested_task_type_update": "",
             }
-            return {"06_feedback/triage_update_patch.json": patch}
+            return {f"06_feedback/cycle_{task.cycle_id:04d}/triage_update_patch.json": patch, "06_feedback/triage_update_patch.json": patch}
 
         return harness.run(task, task_dir, kb, policy, attachments, make_initial, update, lambda _c, d: d, post)

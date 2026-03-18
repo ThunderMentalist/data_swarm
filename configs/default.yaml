@@ -20,6 +20,12 @@ comms:
 privacy:
   persist_identifiers: false
   require_role_mapping: true
+  default_persona_token_format: "JD | Role | Org | Region"
+run_mode: INITIAL_USING
+attachment_ingest:
+  enabled: true
+  max_chars_per_file: 20000
+  max_files: 25
 paths: {}
 meridian_aux:
   max_files: 25

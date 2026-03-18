@@ -21,12 +21,12 @@ def test_triage_stage_stops_pipeline_when_not_approved(tmp_path: Path) -> None:
     task = Task(task_id="t1", title="Task", description="Need a plan", task_type="general")
     store.create(task)
 
-    io = FakeIO(answers=["Goal text", "END", "Deliverable text", "END", "Audience text", "END", "Deadline text", "END", "Success 1", "END", "Constraints 1", "END", "Inputs 1", "END", "n", "n"])
+    io = FakeIO(answers=["intake", "END", "1", "Goal text", "END", "Deliverable text", "END", "Audience text", "END", "Deadline text", "END", "Success 1", "END", "Constraints 1", "END", "Inputs 1", "END", "4", "4"])
     run_task(task.task_id, config={}, home=home, io=io)
 
     task_payload = json.loads((home / "tasks" / task.task_id / "task.json").read_text(encoding="utf-8"))
-    assert task_payload["state"] == TaskState.NEEDS_CLARIFICATION.value
-    triage_dir = home / "tasks" / task.task_id / "01_triage"
+    assert task_payload["state"] == TaskState.BLOCKED.value
+    triage_dir = home / "tasks" / task.task_id / "01_triage" / "cycle_0001"
     assert (triage_dir / "initial_brief.json").exists()
     assert (triage_dir / "draft_brief.json").exists()
     assert not (triage_dir / "final_brief.json").exists()
