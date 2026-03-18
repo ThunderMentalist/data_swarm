@@ -3,6 +3,8 @@
 `data_swarm` is an agentic Task OS for task-centric execution with explicit HITL checkpoints,
 validated state transitions, local JSONL logs, and plugin-based deliverables.
 
+> Smoke-check note: this repository accepts tiny documentation-only updates to verify CI and PR wiring.
+
 ## Install
 
 ```bash
