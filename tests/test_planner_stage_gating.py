@@ -13,11 +13,11 @@ def test_planner_stage_requires_approval(tmp_path: Path) -> None:
     store = TaskStore(home)
     task = Task(task_id="p1", title="Plan it", description="desc")
     task_dir = store.create(task)
-    io = FakeIO(answers=["deadline", "END", "success", "END", "risk", "END", "dep", "END", "n"])
+    io = FakeIO(answers=["deadline", "END", "success", "END", "risk", "END", "dep", "END", "4"])
 
     result = PlannerStage(config={}, home=home, io=io, store=store, logs=LogStore(task_dir)).run(task, task_dir)
 
-    plan_dir = task_dir / "02_plan"
+    plan_dir = task_dir / "02_plan" / "cycle_0001"
     assert (plan_dir / "initial_plan.md").exists()
     assert (plan_dir / "draft_plan.md").exists()
     assert not (plan_dir / "02_plan.md").exists()

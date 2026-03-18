@@ -48,8 +48,7 @@ class TriageStage(AgenticStage):
                 initial_name="initial_brief.json",
                 draft_name="draft_brief.json",
                 final_name="final_brief.json",
-                expected_transitions_on_approval=[TaskState.TRIAGED],
-                non_approval_target=lambda _task: TaskState.NEEDS_CLARIFICATION,
+                expected_transitions_on_approval=[TaskState.TRIAGED]
             ),
             io=self.io,
             store=self.store,
@@ -58,16 +57,20 @@ class TriageStage(AgenticStage):
         )
 
         def make_initial(ctx):
-            intake_path = ctx.task_dir / "00_intake" / "00_intake.md"
-            intake_text = intake_path.read_text(encoding="utf-8") if intake_path.exists() else ctx.task.description
+            refined_path = ctx.task_dir / "00_intake" / "refined_task.md"
+            raw_path = ctx.task_dir / "00_intake" / "raw_input.md"
+            intake_text = refined_path.read_text(encoding="utf-8") if refined_path.exists() else (raw_path.read_text(encoding="utf-8") if raw_path.exists() else ctx.task.description)
             sanitized, _ = self.anonymizer.collect_from_text(intake_text, self.io)
             brief = concierge.propose_initial_brief(sanitized)
             brief.inputs_available.extend([f"{x['filename']} ({x['sha256'][:8]})" for x in ctx.attachments])
-            patch_path = ctx.task_dir / "06_feedback" / "triage_update_patch.json"
+            patch_path = ctx.task_dir / "06_reaction" / "triage_update_patch.json"
+            if not patch_path.exists():
+                cycle_patch = ctx.task_dir / "06_reaction" / f"cycle_{ctx.cycle_id:04d}" / "triage_update_patch.json"
+                patch_path = cycle_patch if cycle_patch.exists() else patch_path
             if patch_path.exists():
                 patch = __import__("json").loads(patch_path.read_text(encoding="utf-8"))
                 brief.constraints.extend(patch.get("clarified_constraints", []))
-                brief.context = (brief.context + "\nFeedback patch facts: " + "; ".join(patch.get("new_facts", []))).strip()
+                brief.context = (brief.context + "\nReaction patch facts: " + "; ".join(patch.get("new_facts", []))).strip()
             return brief.to_dict()
 
         def update_draft(ctx, draft):

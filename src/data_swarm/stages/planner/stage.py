@@ -38,13 +38,7 @@ class PlannerStage(AgenticStage):
         critic = PlannerCriticAgent()
         curator = PlannerCuratorAgent()
         change = PlannerChangeAgent()
-        harness = StageHarness(
-            StageSpec("planner", "02_plan", "initial_plan.md", "draft_plan.md", "02_plan.md", [], lambda _t: TaskState.NEEDS_CLARIFICATION),
-            self.io,
-            self.store,
-            self.logs,
-            self.anonymizer,
-        )
+        harness = StageHarness(StageSpec("planner", "02_plan", "initial_plan.md", "draft_plan.md", "02_plan.md", []), self.io, self.store, self.logs, self.anonymizer)
 
         def make_initial(_ctx):
             return concierge.initial_plan(task.title)

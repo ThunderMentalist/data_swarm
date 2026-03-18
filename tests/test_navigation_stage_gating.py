@@ -13,11 +13,11 @@ def test_navigation_stage_requires_approval(tmp_path: Path) -> None:
     store = TaskStore(home)
     task = Task(task_id="n1", title="Nav", description="desc")
     task_dir = store.create(task)
-    io = FakeIO(answers=["first", "END", "seq", "END", "risk", "END", "", "END", "n"])
+    io = FakeIO(answers=["first", "END", "seq", "END", "risk", "END", "", "END", "4"])
 
     result = NavigationStage(config={}, home=home, io=io, store=store, logs=LogStore(task_dir)).run(task, task_dir)
 
-    stage_dir = task_dir / "04_navigation"
+    stage_dir = task_dir / "04_navigation" / "cycle_0001"
     assert (stage_dir / "initial_navigation.md").exists()
     assert (stage_dir / "draft_navigation.md").exists()
     assert (stage_dir / "iterations.jsonl").exists()
