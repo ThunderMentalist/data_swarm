@@ -2,32 +2,19 @@
 
 from __future__ import annotations
 
-import re
-
 from data_swarm import yaml_compat as yaml
+from data_swarm.stages.policy_store import PolicyPack
 
 
 class StakeholderCuratorAgent:
-    """Stakeholder Curator Agent."""
-
     name = "Stakeholder Curator Agent"
 
-    def curate(self, initial_yaml: str, final_yaml: str) -> tuple[str, str]:
-        """Generate stakeholder delta and learning candidates."""
+    def curate(self, initial_payload: dict, final_payload: dict, policy: PolicyPack) -> tuple[str, str]:
         delta = (
             "# Stakeholder Delta Learning\n\n"
-            f"- Initial length: {len(initial_yaml)}\n"
-            f"- Final length: {len(final_yaml)}\n"
+            f"- Initial roles: {len(initial_payload.get('roles', []))}\n"
+            f"- Final roles: {len(final_payload.get('roles', []))}\n"
+            f"- Decision trees considered: {len(policy.decision_trees)}\n"
         )
-        redacted = re.sub(r"[\w.+-]+@[\w.-]+", "[REDACTED_EMAIL]", final_yaml)
-        payload = {
-            "facts": ["Stakeholder mapping improved after review."],
-            "behaviour_cards": [
-                {
-                    "title": "Capture stakeholder influence and cadence",
-                    "guidance": "Always include influence plus engagement rhythm.",
-                    "evidence": redacted[:180],
-                }
-            ],
-        }
+        payload = {"facts": ["Stakeholder mapping improved after review."], "behaviour_cards": [{"title": "Capture stakeholder influence and cadence", "guidance": "Always include influence plus engagement rhythm.", "evidence": str(final_payload.get('roles', []))[:180]}]}
         return delta, yaml.safe_dump(payload, sort_keys=False)

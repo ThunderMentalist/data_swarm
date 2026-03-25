@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
-from data_swarm.kb import load_stage_policy
+from data_swarm.kb import load_stage_policy, select_stage_kb_context
 from data_swarm.orchestrator.hitl import ask_multiline
 from data_swarm.orchestrator.task_models import Task, TaskState
 from data_swarm.stages.base import AgenticStage, StageResult
@@ -17,12 +18,11 @@ from data_swarm.stages.triage.models import TaskBrief
 from data_swarm.stores.log_store import LogStore
 from data_swarm.stores.task_store import TaskStore
 from data_swarm.tools.anonymize import Anonymizer
-from data_swarm.tools.io import UserIO, ConsoleIO
+from data_swarm.tools.attachments import ingest_selected_attachments
+from data_swarm.tools.io import UserIO
 
 
 class TriageStage(AgenticStage):
-    """Agentic triage stage with explicit approval gate."""
-
     name = "triage"
 
     def __init__(self, config: dict, home: Path, io: UserIO, store: TaskStore, logs: LogStore, anonymizer: Anonymizer | None = None) -> None:
@@ -33,8 +33,8 @@ class TriageStage(AgenticStage):
         self.logs = logs
         self.anonymizer = anonymizer or Anonymizer(home / "kb" / "personas.yaml")
 
-    def run(self, task: Task, task_dir: Path, kb: dict | None = None, attachments: list[dict] | None = None) -> StageResult:
-        kb = kb or {}
+    def run(self, task: Task, task_dir: Path, kb: dict | None = None, attachments: list[dict] | None = None, **kwargs) -> StageResult:
+        kb = select_stage_kb_context(self.name, kb or {})
         attachments = attachments or []
         policy = load_stage_policy(self.home, self.name)
         concierge = TriageConciergeAgent(policy_pack=policy)
@@ -42,14 +42,7 @@ class TriageStage(AgenticStage):
         curator = TriageCuratorAgent()
         change = TriageChangeAgent()
         harness = StageHarness(
-            StageSpec(
-                stage_key="triage",
-                stage_dir="01_triage",
-                initial_name="initial_brief.json",
-                draft_name="draft_brief.json",
-                final_name="final_brief.json",
-                expected_transitions_on_approval=[TaskState.TRIAGED]
-            ),
+            StageSpec(stage_key="triage", stage_dir="01_triage", initial_name="initial_brief.json", draft_name="draft_brief.json", final_name="final_brief.json", expected_transitions_on_approval=[TaskState.TRIAGED]),
             io=self.io,
             store=self.store,
             logs=self.logs,
@@ -63,50 +56,56 @@ class TriageStage(AgenticStage):
             sanitized, _ = self.anonymizer.collect_from_text(intake_text, self.io)
             brief = concierge.propose_initial_brief(sanitized)
             brief.inputs_available.extend([f"{x['filename']} ({x['sha256'][:8]})" for x in ctx.attachments])
-            patch_path = ctx.task_dir / "06_reaction" / "triage_update_patch.json"
-            if not patch_path.exists():
-                cycle_patch = ctx.task_dir / "06_reaction" / f"cycle_{ctx.cycle_id:04d}" / "triage_update_patch.json"
-                patch_path = cycle_patch if cycle_patch.exists() else patch_path
-            if patch_path.exists():
-                patch = __import__("json").loads(patch_path.read_text(encoding="utf-8"))
-                brief.constraints.extend(patch.get("clarified_constraints", []))
-                brief.context = (brief.context + "\nReaction patch facts: " + "; ".join(patch.get("new_facts", []))).strip()
+            if ctx.memory_store:
+                prefs = ctx.memory_store.get_personal_preferences("channel.")
+                if prefs:
+                    brief.readiness_hints.append(f"Known comms prefs: {', '.join(list(prefs.keys())[:3])}")
             return brief.to_dict()
 
         def update_draft(ctx, draft):
             current = TaskBrief.from_dict(draft)
             qa = []
-            if ctx.attachments:
-                confirm = ask_multiline(ctx.io, "Confirm which attachments should be relied on (or leave blank)")
-                if confirm:
-                    current.inputs_available.append(confirm)
             for question in concierge.next_questions(current):
                 answer = ask_multiline(ctx.io, f"Clarification: {question}")
                 sanitized, _ = self.anonymizer.collect_from_text(answer, self.io)
                 qa.append((question, sanitized))
             updated = concierge.apply_answers(current, qa)
+            if not updated.goal:
+                updated.goal = task.title
+            if not updated.deliverable:
+                updated.deliverable = "Written recommendation"
             ctx.io.tell("Current brief:\n" + concierge.format_brief(updated))
-            return updated.to_dict(), {
-                "learning_summary": "Brief refined with clarified goal, constraints, and known inputs.",
-                "decisions": ["Proposed task_type recorded for confirmation"],
-                "resolved_unknowns": [q for q, _ in qa if _],
-                "remaining_unknowns": [],
-            }
+            return updated.to_dict(), {"learning_summary": "Brief refined with clarified goal, constraints, and inputs.", "decisions": ["Proposed task_type recorded for confirmation"], "resolved_unknowns": [q for q, a in qa if a], "remaining_unknowns": []}
 
         def render_final(_ctx, draft):
             return draft
 
-        def post(_ctx, initial, final):
+        def post(ctx, initial, final):
             init = TaskBrief.from_dict(initial or TaskBrief.empty().to_dict())
             fin = TaskBrief.from_dict(final)
-            critic_eval = critic.evaluate(init, fin, [])
-            delta_md, candidates_yaml = curator.curate(init, fin)
-            change_request = change.generate(task.task_id, critic_eval, {}, self.home)
+            inv, summary, extracted = ingest_selected_attachments(
+                ctx.task_dir,
+                ctx.attachments,
+                fin.requested_attachments,
+                self.config.get("attachment_ingest", {}),
+                enabled=ctx.run_mode_policy.attachment_ingest_enabled,
+            )
+            extracted_payload = {
+                "requested_files": fin.requested_attachments,
+                "inventory": inv,
+                "summary": summary,
+                "extracted_text": extracted,
+            }
+            critic_eval = critic.evaluate(init, fin, ctx.policy)
+            delta_md, candidates_yaml = curator.curate(init, fin, ctx.policy)
+            change_request = change.generate(task.task_id, critic_eval, {}, self.home, allow_history_write=ctx.run_mode_policy.allow_policy_history_write)
             return {
                 "01_triage/triage_critic_eval.json": critic_eval,
                 "01_triage/delta_learning.md": delta_md,
                 "01_triage/learning_candidates.yaml": candidates_yaml,
                 "01_triage/change_request.md": change_request,
+                "01_triage/requested_attachment_extraction.json": extracted_payload,
+                f"01_triage/cycle_{task.cycle_id:04d}/requested_attachment_extraction.json": extracted_payload,
             }
 
-        return harness.run(task, task_dir, kb, policy, attachments, make_initial, update_draft, render_final, post)
+        return harness.run(task, task_dir, kb, policy, attachments, make_initial, update_draft, render_final, post, **kwargs)
