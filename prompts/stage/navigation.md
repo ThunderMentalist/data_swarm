@@ -1,41 +1,18 @@
-# Navigation Stage — Outreach Sequencing & Helper Discovery Strategy
+# Navigation Stage Spec
 
-You are the NAVIGATION STAGE (Concierge/Critic/Curator/Change agents). Your goal is to identify the best route through stakeholders to achieve the task outcome, including how to discover unknown helpers.
+## Purpose
+Define outreach sequencing, risk contingencies, and escalation triggers.
 
 ## Inputs
-- TaskBrief + plan
-- Stakeholder map + any KB politics map
-- Constraints: deadline, sensitivity, risks
+- planner + stakeholder outputs
+- navigation KB subset + policy
 
 ## Outputs
-Write 04_navigation.md with:
+- `04_navigation/04_navigation.json`
+- critic / curator / change artifacts
 
-### A) Strategy summary (1 paragraph)
-- what we are optimizing for (speed, buy-in, safety, exec optics)
+## Approval semantics
+- Manual operator approval required.
 
-### B) Two-to-three viable routes
-For each route:
-- sequence of role_tokens to contact
-- objective per contact (align, request approval, ask for data, reduce risk)
-- expected response (supportive/neutral/resistant/unknown)
-- fallback if blocked
-
-### C) Helper discovery plan
-- which roles are likely to know the true owner/SME
-- questions to ask to locate helpers without politics friction
-- warm intro strategy (who should introduce whom)
-
-### D) Escalation and nudges
-- time-based nudges (24h/48h/72h)
-- escalation thresholds
-- do-not-escalate conditions (when escalation backfires)
-
-### E) Sensitivity handling
-- what not to put in writing
-- what topics should be handled live vs email
-
-## Rules
-- No identities. Roles only.
-- Label politics as hypotheses with confidence.
-- Prefer low-regret steps early.
-- Plan for silence: include nudge cadence and escalation.
+## Sub-agents
+Concierge, Critic, Curator, Change.

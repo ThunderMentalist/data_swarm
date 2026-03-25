@@ -26,7 +26,7 @@ ALLOWED_TRANSITIONS: dict[TaskState, set[TaskState]] = {
     TaskState.PLANNED: {TaskState.OUTREACH_PENDING_REVIEW, TaskState.REPLANNING, TaskState.BLOCKED, TaskState.CLOSED},
     TaskState.OUTREACH_PENDING_REVIEW: {TaskState.AWAITING_REPLIES, TaskState.REPLANNING, TaskState.BLOCKED, TaskState.CLOSED},
     TaskState.AWAITING_REPLIES: {TaskState.REPLANNING, TaskState.READY_TO_DELIVER, TaskState.BLOCKED, TaskState.CLOSED},
-    TaskState.REPLANNING: {TaskState.OUTREACH_PENDING_REVIEW, TaskState.READY_TO_DELIVER, TaskState.BLOCKED, TaskState.CLOSED},
+    TaskState.REPLANNING: {TaskState.TRIAGED, TaskState.OUTREACH_PENDING_REVIEW, TaskState.READY_TO_DELIVER, TaskState.BLOCKED, TaskState.CLOSED},
     TaskState.BLOCKED: {TaskState.REPLANNING, TaskState.CLOSED},
     TaskState.READY_TO_DELIVER: {TaskState.DELIVERED, TaskState.BLOCKED, TaskState.CLOSED},
     TaskState.DELIVERED: {TaskState.CLOSED, TaskState.REPLANNING, TaskState.BLOCKED},

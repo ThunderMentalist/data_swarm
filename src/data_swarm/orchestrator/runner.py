@@ -6,6 +6,7 @@ from pathlib import Path
 
 from data_swarm.agents.deliverable import run_deliverable
 from data_swarm.kb import load_kb
+from data_swarm.orchestrator.hitl import approve
 from data_swarm.orchestrator.run_mode import policy_for_mode, resolve_run_mode
 from data_swarm.orchestrator.task_models import TaskState
 from data_swarm.orchestrator.transitions import apply_transition
@@ -13,6 +14,7 @@ from data_swarm.stages.comms.stage import CommsStage
 from data_swarm.stages.intake_refine.stage import IntakeRefineStage
 from data_swarm.stages.navigation.stage import NavigationStage
 from data_swarm.stages.planner.stage import PlannerStage
+from data_swarm.stages.readiness.stage import ReadinessStage
 from data_swarm.stages.reaction.stage import ReactionStage
 from data_swarm.stages.stakeholder.stage import StakeholderStage
 from data_swarm.stages.triage.stage import TriageStage
@@ -43,30 +45,45 @@ def run_task(task_id: str, config: dict, home: Path, io: UserIO | None = None, r
     kb = load_kb(home)
     memory_store = MemoryStore(home)
 
-    stages: list[tuple[str, object]] = []
     if task.state == TaskState.AWAITING_REPLIES:
-        stages.append(("reaction", ReactionStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)))
-    stages.extend([
+        reaction = ReactionStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)
+        _event(logs, task_id, "reaction", "stage_start", "reaction started")
+        result = reaction.run(task, task_dir, kb, store.list_attachments(task_id), memory_store=memory_store, run_mode=mode, run_mode_policy=policy, repo_root=home)
+        _event(logs, task_id, "reaction", "stage_complete", "reaction finished", {"approved": result.approved, "state_after": result.state_after.value})
+        if not result.approved:
+            return
+
+        readiness = ReadinessStage(config)
+        decision = readiness.evaluate(store.load(task_id), task_dir)
+        target = readiness.to_task_state(decision.recommended_state)
+        if target in {TaskState.REPLANNING, TaskState.READY_TO_DELIVER}:
+            if policy.allow_auto_ready_to_deliver and target == TaskState.READY_TO_DELIVER:
+                apply_transition(store.load(task_id), target, "auto readiness recommendation", ["06_reaction/readiness_recommendation.json"], store, logs, "readiness")
+            else:
+                if approve(io, f"Readiness recommends {target.value}. Approve transition?"):
+                    apply_transition(store.load(task_id), target, "operator approved readiness recommendation", ["06_reaction/readiness_recommendation.json"], store, logs, "readiness")
+                else:
+                    logs.run_log("Readiness recommendation shown; operator kept current state.")
+        task = store.load(task_id)
+
+    if task.state == TaskState.READY_TO_DELIVER:
+        stages: list[tuple[str, object]] = []
+    else:
+        stages: list[tuple[str, object]] = [
         ("intake_refine", IntakeRefineStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)),
         ("triage", TriageStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)),
         ("planner", PlannerStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)),
         ("stakeholder", StakeholderStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)),
         ("navigation", NavigationStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)),
         ("comms", CommsStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)),
-    ])
+    ]
 
     attachments = store.list_attachments(task_id)
     for stage_name, stage in stages:
         task = store.load(task_id)
-        if stage_name == "reaction" and task.state == TaskState.AWAITING_REPLIES:
-            pass
         _event(logs, task_id, stage_name, "stage_start", f"{stage_name} started")
-        result = stage.run(task, task_dir, kb, attachments)
+        result = stage.run(task, task_dir, kb, attachments, memory_store=memory_store, run_mode=mode, run_mode_policy=policy, repo_root=home)
         _event(logs, task_id, stage_name, "stage_complete", f"{stage_name} finished", {"approved": result.approved, "skipped": result.skipped, "state_after": result.state_after.value, "artifacts_written": result.artifacts_written})
-        if stage_name == "reaction" and result.approved and task.state != TaskState.REPLANNING:
-            apply_transition(task, TaskState.REPLANNING, "reaction approved", result.artifacts_written, store, logs, "reaction")
-            task.cycle_id += 1
-            store.save(task)
         if not result.approved:
             logs.run_log(f"pipeline stopped: {stage_name} not approved")
             if policy.allow_persona_learning:
@@ -80,6 +97,12 @@ def run_task(task_id: str, config: dict, home: Path, io: UserIO | None = None, r
     if store.load(task_id).state != TaskState.READY_TO_DELIVER:
         return
 
+    if not policy.allow_auto_deliverable:
+        if not approve(io, "Task is READY_TO_DELIVER. Approve deliverable run?"):
+            logs.run_log("Deliverable waiting for manual approval.")
+            return
+
+    task = store.load(task_id)
     merged_config = dict(config)
     merged_config["data_swarm_home"] = str(home)
     run_deliverable(task, task_dir, merged_config, io=io)

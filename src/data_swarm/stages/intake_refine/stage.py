@@ -13,7 +13,7 @@ from data_swarm.stages.harness import StageHarness, StageSpec
 from data_swarm.stores.log_store import LogStore
 from data_swarm.stores.task_store import TaskStore
 from data_swarm.tools.anonymize import Anonymizer
-from data_swarm.tools.attachments import ingest_attachments
+from data_swarm.tools.attachments import build_inventory
 from data_swarm.tools.io import UserIO
 
 
@@ -28,7 +28,7 @@ class IntakeRefineStage(AgenticStage):
         self.logs = logs
         self.anonymizer = anonymizer or Anonymizer(home / "kb" / "personas.yaml")
 
-    def run(self, task: Task, task_dir: Path, kb: dict | None = None, attachments: list[dict] | None = None) -> StageResult:
+    def run(self, task: Task, task_dir: Path, kb: dict | None = None, attachments: list[dict] | None = None, **kwargs) -> StageResult:
         kb = kb or {}
         attachments = attachments or []
         policy = load_stage_policy(self.home, self.name)
@@ -45,8 +45,8 @@ class IntakeRefineStage(AgenticStage):
             return updated, {"learning_summary": "Intake refined.", "decisions": [], "resolved_unknowns": [], "remaining_unknowns": []}
 
         def post(ctx, _initial, final):
-            cfg = self.config.get("attachment_ingest", {})
-            inventory, summary, _ = ingest_attachments(ctx.task_dir, ctx.attachments, cfg)
+            inventory = build_inventory(ctx.task_dir, ctx.attachments)
+            summary = "# Attachments Summary\n\n- Inventory captured; extraction deferred until triage requests specific files.\n"
             digest = hashlib.sha256(final.encode("utf-8")).hexdigest()
             task.refined_task_digest = digest
             task.refined_task_path = "00_intake/refined_task.md"
@@ -63,4 +63,4 @@ class IntakeRefineStage(AgenticStage):
                 "00_intake/attachments_summary.md": summary,
             }
 
-        return harness.run(task, task_dir, kb, policy, attachments, make_initial, update, lambda _c, d: d, post)
+        return harness.run(task, task_dir, kb, policy, attachments, make_initial, update, lambda _c, d: d, post, **kwargs)
