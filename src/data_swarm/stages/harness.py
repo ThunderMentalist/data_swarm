@@ -15,6 +15,7 @@ from data_swarm.orchestrator.state_machine import InvalidTransitionError
 from data_swarm.orchestrator.task_models import Task, TaskState
 from data_swarm.orchestrator.transitions import apply_transition
 from data_swarm.stages.base import StageResult
+from data_swarm.stages.policy_store import PolicyPack
 from data_swarm.stores.log_store import LogStore
 from data_swarm.stores.memory_store import MemoryStore
 from data_swarm.stores.task_store import TaskStore
@@ -41,7 +42,7 @@ class StageContext:
     io: UserIO
     attachments: list[dict[str, Any]]
     kb: dict[str, Any]
-    policy: dict[str, Any]
+    policy: PolicyPack
     memory_store: MemoryStore | None
     run_mode: RunMode
     run_mode_policy: RunModePolicy
@@ -61,12 +62,12 @@ class StageHarness:
         self.logs = logs
         self.anonymizer = anonymizer
 
-    def run(self, task: Task, task_dir: Path, kb: dict[str, Any], policy: dict[str, Any], attachments: list[dict[str, Any]],
+    def run(self, task: Task, task_dir: Path, kb: dict[str, Any], policy: PolicyPack, attachments: list[dict[str, Any]],
             make_initial: Callable[[StageContext], Any], update_draft_via_hitl: Callable[[StageContext, Any], tuple[Any, dict[str, Any]]],
             render_final: Callable[[StageContext, Any], Any], post_approval: Callable[[StageContext, Any, Any], dict[str, Any]],
             memory_store: MemoryStore | None = None, run_mode: RunMode = RunMode.INITIAL_USING,
             run_mode_policy: RunModePolicy | None = None, repo_root: Path | None = None) -> StageResult:
-        run_mode_policy = run_mode_policy or RunModePolicy(True, True, True, True, False, False, True)
+        run_mode_policy = run_mode_policy or RunModePolicy(True, True, True, True, False, False, True, False, False)
         stage_dir = task_dir / self.spec.stage_dir
         stage_dir.mkdir(parents=True, exist_ok=True)
         cdir = cycle_dir(stage_dir, task.cycle_id)
@@ -78,10 +79,13 @@ class StageHarness:
         ctx = StageContext(task, task_dir, stage_dir, cdir, self.io, attachments, kb, policy, memory_store, run_mode, run_mode_policy, repo_root or task_dir, task.cycle_id)
 
         artifacts: list[str] = []
+        if run_mode_policy.watermark_demo_artifacts:
+            wm = cdir / "demo_watermark.txt"
+            wm.write_text("DEMO MODE - NOT FOR PRODUCTION USE\n", encoding="utf-8")
+
         if final_path.exists():
             for target in self.spec.expected_transitions_on_approval:
-                if task.state != target:
-                    self._safe_transition(task, target, f"resume reconciliation for {self.spec.stage_key}", [self._rel(task_dir, final_path)])
+                self._safe_transition(task, target, f"resume reconciliation for {self.spec.stage_key}", [self._rel(task_dir, final_path)])
             self.logs.event(task.task_id, self.spec.stage_key, "stage_resumed_from_final", "stage resumed from final artifact", {"artifact": self._rel(task_dir, final_path)})
             return StageResult(True, task.state, [self._rel(task_dir, final_path)])
 
@@ -94,6 +98,7 @@ class StageHarness:
         approved = False
         skipped = False
         learning = {"learning_summary": ""}
+        transition_failed = False
         while True:
             draft, learning = update_draft_via_hitl(ctx, draft)
             self._write_any(draft_path, draft)
@@ -126,13 +131,11 @@ class StageHarness:
             self._write_any(final_path, final_payload)
             artifacts.append(self._rel(task_dir, final_path))
             for target in self.spec.expected_transitions_on_approval:
-                if task.state != target:
-                    self._safe_transition(task, target, f"{self.spec.stage_key} approved", [self._rel(task_dir, final_path)])
+                ok = self._safe_transition(task, target, f"{self.spec.stage_key} approved", [self._rel(task_dir, final_path)])
+                transition_failed = transition_failed or (not ok)
             extra = post_approval(ctx, self._read_or_none(initial_path), final_payload)
             for rel, payload in extra.items():
-                out = task_dir / rel if not str(rel).startswith(self.spec.stage_dir) else task_dir / rel
-                if not out.is_absolute() and str(rel).startswith(self.spec.stage_dir + "/"):
-                    pass
+                out = task_dir / rel
                 out.parent.mkdir(parents=True, exist_ok=True)
                 self._write_any(out, payload)
                 artifacts.append(str(out.relative_to(task_dir)))
@@ -143,16 +146,16 @@ class StageHarness:
         artifacts.append(self._rel(task_dir, iteration_path))
         self._write_manifest(task_dir, manifest_path, artifacts)
         artifacts.append(self._rel(task_dir, manifest_path))
-        return StageResult(True, task.state, sorted(set(artifacts)), skipped=skipped)
+        return StageResult(approved and not transition_failed, task.state, sorted(set(artifacts)), skipped=skipped)
 
-    def _safe_transition(self, task: Task, target: TaskState, reason: str, artifacts: list[str]) -> None:
+    def _safe_transition(self, task: Task, target: TaskState, reason: str, artifacts: list[str]) -> bool:
         try:
             if task.state != target:
                 apply_transition(task, target, reason, artifacts, self.store, self.logs, self.spec.stage_key)
+            return True
         except InvalidTransitionError as exc:
-            self.logs.event(task.task_id, self.spec.stage_key, "invalid_transition", str(exc), {"fallback": "BLOCKED"})
-            if task.state != TaskState.BLOCKED:
-                apply_transition(task, TaskState.BLOCKED, f"fallback blocked: {reason}", artifacts, self.store, self.logs, self.spec.stage_key)
+            self.logs.event(task.task_id, self.spec.stage_key, "invalid_transition", str(exc), {"fallback": "no-op"})
+            return False
 
     def _migrate_legacy(self, stage_dir: Path, cdir: Path) -> None:
         if cdir.exists() and any(cdir.iterdir()):

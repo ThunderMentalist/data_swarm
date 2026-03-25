@@ -2,37 +2,20 @@
 
 from __future__ import annotations
 
-import re
-
 from data_swarm import yaml_compat as yaml
+from data_swarm.stages.policy_store import PolicyPack
 
 
 class PlannerCuratorAgent:
-    """Planner Curator Agent."""
-
     name = "Planner Curator Agent"
 
-    def curate(self, initial_plan: str, final_plan: str) -> tuple[str, str]:
-        """Produce delta markdown and learning candidates YAML."""
-        delta = "\n".join(
-            [
-                "# Planner Delta Learning",
-                "",
-                "## Text diff summary",
-                f"- Initial length: {len(initial_plan)}",
-                f"- Final length: {len(final_plan)}",
-                "- Final plan includes additional HITL guidance." if final_plan != initial_plan else "- No textual differences.",
-            ]
-        ) + "\n"
-        redacted = re.sub(r"[\w.+-]+@[\w.-]+", "[REDACTED_EMAIL]", final_plan)
-        payload = {
-            "facts": ["Human clarifications improved planning specificity."],
-            "behaviour_cards": [
-                {
-                    "title": "Capture explicit success criteria in planning",
-                    "guidance": "Ask and record measurable outcomes before execution.",
-                    "evidence": redacted[:180],
-                }
-            ],
-        }
+    def curate(self, initial_plan: dict, final_plan: dict, policy: PolicyPack) -> tuple[str, str]:
+        delta = "\n".join([
+            "# Planner Delta Learning",
+            "",
+            f"- Initial milestones: {len(initial_plan.get('milestones', []))}",
+            f"- Final milestones: {len(final_plan.get('milestones', []))}",
+            f"- Policy cards considered: {len(policy.behaviour_cards)}",
+        ]) + "\n"
+        payload = {"facts": ["Human clarifications improved planning specificity."], "behaviour_cards": [{"title": "Capture explicit success criteria in planning", "guidance": "Ask and record measurable outcomes.", "evidence": ",".join(final_plan.get("success_criteria", []))[:180]}]}
         return delta, yaml.safe_dump(payload, sort_keys=False)
