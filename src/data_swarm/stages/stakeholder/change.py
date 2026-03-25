@@ -9,17 +9,14 @@ from data_swarm.stages.policy_store import StagePolicyStore
 
 
 class StakeholderChangeAgent:
-    """Stakeholder Change Agent."""
-
     name = "Stakeholder Change Agent"
 
-    def generate(self, task_id: str, critic_eval: dict, curator_candidates: dict, home: Path) -> str:
-        """Generate change request markdown with repetition signals."""
+    def generate(self, task_id: str, critic_eval: dict, curator_candidates: dict, home: Path, allow_history_write: bool = True) -> str:
         store = StagePolicyStore(home, "stakeholder")
         store.ensure_scaffold()
         suggestions = critic_eval.get("suggestions", [])
         keys = [s.get("suggestion_key", "stakeholder_suggestion") for s in suggestions]
-        counts = store.update_repetition_index(keys)
+        counts = store.update_repetition_index(keys) if allow_history_write else {k: 1 for k in keys}
         lines = ["# Stakeholder Change Request", "", "## Suggested changes"]
         for suggestion, key in zip(suggestions, keys):
             lines.append(f"- **{suggestion.get('title', 'Untitled suggestion')}**")
@@ -28,5 +25,6 @@ class StakeholderChangeAgent:
             if counts.get(key, 1) > 1:
                 lines.append(f"  - Repetition signal: seen {counts[key]} times; becoming repetitive.")
         lines.extend(["", "## Curator candidates", str(curator_candidates)])
-        store.append_change_record({"timestamp": datetime.now(timezone.utc).isoformat(), "task_id": task_id, "suggestion_keys": keys})
+        if allow_history_write:
+            store.append_change_record({"timestamp": datetime.now(timezone.utc).isoformat(), "task_id": task_id, "suggestion_keys": keys})
         return "\n".join(lines).rstrip() + "\n"

@@ -1,4 +1,4 @@
-"""Redaction and role-mapping utilities for feedback."""
+"""Redaction and role-mapping utilities for reply ingestion."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ def redact_identifiers(text: str) -> str:
     return EMAIL_RE.sub("[REDACTED_EMAIL]", text)
 
 
-def sanitize_feedback(text: str, io: UserIO) -> tuple[str, set[str]]:
+def sanitize_reaction_text(text: str, io: UserIO) -> tuple[str, set[str]]:
     """Map discovered identifiers to roles, then redact remaining emails."""
     mapping: dict[str, str] = {}
     roles_used: set[str] = set()
