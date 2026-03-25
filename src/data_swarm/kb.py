@@ -1,4 +1,4 @@
-"""Knowledge base loading and proposal application helpers."""
+"""Knowledge base loading and stage-context selection helpers."""
 
 from __future__ import annotations
 
@@ -6,6 +6,18 @@ from pathlib import Path
 from typing import Any
 
 from data_swarm import yaml_compat as yaml
+from data_swarm.stages.policy_store import PolicyPack, StagePolicyStore
+
+
+_STAGE_KB_KEYS: dict[str, list[str]] = {
+    "triage": ["role_registry", "org_units", "personas", "stakeholder_profiles"],
+    "planner": ["role_registry", "org_units", "politics_map"],
+    "stakeholder": ["stakeholder_profiles", "personas", "politics_map", "role_registry"],
+    "navigation": ["politics_map", "org_units", "role_registry"],
+    "comms": ["comms_patterns", "personas", "tone_profile"],
+    "reaction": ["personas", "stakeholder_profiles", "role_registry", "politics_map"],
+    "readiness": ["personas", "stakeholder_profiles", "role_registry"],
+}
 
 
 def load_kb(home: Path) -> dict[str, Any]:
@@ -19,14 +31,12 @@ def load_kb(home: Path) -> dict[str, Any]:
     return payload
 
 
-def load_stage_policy(home: Path, stage_key: str) -> dict[str, Any]:
-    """Load stage policy pack deterministically."""
-    root = home / f"{stage_key}_policy"
-    core = root / "core_prompt.md"
-    cards = sorted((root / "active" / "behaviour_cards").glob("*")) if (root / "active" / "behaviour_cards").exists() else []
-    trees = sorted((root / "active" / "decision_trees").glob("*")) if (root / "active" / "decision_trees").exists() else []
-    return {
-        "core_prompt": core.read_text(encoding="utf-8") if core.exists() else "",
-        "behaviour_cards": [p.read_text(encoding="utf-8") for p in cards if p.is_file()],
-        "decision_trees": [p.read_text(encoding="utf-8") for p in trees if p.is_file()],
-    }
+def load_stage_policy(home: Path, stage_key: str) -> PolicyPack:
+    """Load the typed policy pack for a stage."""
+    return StagePolicyStore(home, stage_key).load_policy_pack()
+
+
+def select_stage_kb_context(stage_key: str, kb: dict[str, Any]) -> dict[str, Any]:
+    """Return stage-relevant KB subset for deterministic stage behavior."""
+    keys = _STAGE_KB_KEYS.get(stage_key, sorted(kb.keys()))
+    return {key: kb.get(key, {}) for key in keys}

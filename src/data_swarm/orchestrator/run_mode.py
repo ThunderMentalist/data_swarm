@@ -24,17 +24,19 @@ class RunModePolicy:
     strict_redaction: bool
     watermark_demo_artifacts: bool
     attachment_ingest_enabled: bool
+    allow_auto_ready_to_deliver: bool
+    allow_auto_deliverable: bool
 
 
 def policy_for_mode(mode: RunMode) -> RunModePolicy:
     """Return effective policy switches for a mode."""
     if mode is RunMode.PROTOTYPE:
-        return RunModePolicy(False, False, False, False, True, False, False)
+        return RunModePolicy(False, False, False, False, True, False, False, False, False)
     if mode is RunMode.CALIBRATION:
-        return RunModePolicy(True, True, False, False, True, False, True)
+        return RunModePolicy(True, True, False, False, True, False, True, False, False)
     if mode is RunMode.DEMO:
-        return RunModePolicy(False, False, False, False, True, True, False)
-    return RunModePolicy(True, True, True, True, False, False, True)
+        return RunModePolicy(False, False, False, False, True, True, False, False, False)
+    return RunModePolicy(True, True, True, True, False, False, True, False, False)
 
 
 def resolve_run_mode(value: str | None, fallback: str = "INITIAL_USING") -> RunMode:
