@@ -17,23 +17,26 @@ python -m pip install -e .[dev,openai]
 
 ## Pipeline stages and states
 
-Stages: intake → triage → planner → stakeholder → navigation → comms → feedback → deliverable.
+Main pipeline: `intake -> triage -> planner -> stakeholder -> navigation -> comms`.
 
-State machine: `NEW -> NEEDS_CLARIFICATION -> PLANNED -> OUTREACH_PENDING_REVIEW -> AWAITING_REPLIES -> READY_TO_DELIVER -> DELIVERED` (plus `REPLANNING/BLOCKED/CLOSED` branches).
-All state changes are validated and persisted with `state_transition` JSONL events.
+Reply handling stage: `reaction` (single reply-ingestion path; legacy `feedback` is removed).
+
+Readiness + deliverable flow:
+- `AWAITING_REPLIES` runs `reaction`, then readiness evaluation.
+- readiness recommendation can be `AWAITING_REPLIES`, `REPLANNING`, or `READY_TO_DELIVER`.
+- `READY_TO_DELIVER` is required before deliverable execution.
+- deliverable completion transitions to `DELIVERED`.
+
+State machine backbone:
+`NEW -> TRIAGED -> PLANNED -> OUTREACH_PENDING_REVIEW -> AWAITING_REPLIES -> READY_TO_DELIVER -> DELIVERED`
+with `NEEDS_CLARIFICATION`, `REPLANNING`, `BLOCKED`, and `CLOSED` branches.
 
 ## HITL modes
 
-1. **Triage stage approval gate:** triage questions run until explicit approval to proceed; no confidence threshold gating.
+1. **Triage stage approval gate:** triage questions run until explicit approval to proceed.
 2. **Comms review:** drafts are generated per channel and both draft + approved copies are stored.
-3. **Code/bug approvals:** patch approval before apply, and additional approval after test failures before debug iteration.
-
-## Privacy model
-
-- Identifiers may be seen during active session.
-- Feedback persistence is sanitized after role mapping.
-- Memory store receives role-level notes only (no names/emails).
-- Mapping tables are not persisted; only sanitized output is stored.
+3. **Readiness approval:** readiness recommendations are shown and require operator approval by default.
+4. **Code/bug approvals:** patch approval before apply, and approval before each debug iteration.
 
 ## DATA_SWARM_HOME and local config
 
@@ -50,7 +53,7 @@ Run:
 data-swarm init
 ```
 
-This creates config defaults, richer tone profile template, and `.env` placeholder.
+This creates config defaults, tone profile template, and `.env` placeholder.
 
 `data-swarm init` also seeds `~/.data_swarm/kb/` with local-only YAML templates:
 
@@ -59,28 +62,7 @@ This creates config defaults, richer tone profile template, and `.env` placehold
 - `stakeholder_profiles.yaml`
 - `politics_map.yaml`
 - `comms_patterns.yaml`
+- `personas.yaml`
 
-The KB is role-token-only (no names/emails) and is the single local place to edit
-stakeholder, navigation, and comms context. Prompts assume this KB exists, but they
-still operate if files are missing/sparse.
-
-## SageMaker sibling repo layout
-
-Default auto-detection expects sibling repositories:
-
-- `/home/ec2-user/SageMaker/data_swarm`
-- `/home/ec2-user/SageMaker/meridian`
-- `/home/ec2-user/SageMaker/meridian_aux`
-
-Override paths in `~/.data_swarm/config.yaml` under `paths`.
-
-## Meridian_Aux plugin flow
-
-1. Build index over **both** `meridian` and `meridian_aux`.
-2. Navigator selects entrypoints.
-3. Dependency closure follows import edges (bounded by `max_files` and `max_chars`).
-4. Evidence packet writes snippets, import edges, and `evidence/context.md` summary.
-5. Codegen proposes patch/snippet/tests; patch summary shown before approval.
-6. Snippet + pytest run.
-7. On failure, traceback artifacts are stored and bounded debug loop runs (default 3 iterations) with approval before each iteration and debug patch apply.
-8. Final summary written to `07_deliverable/summary.md`.
+KB and stage policy packs are consumed by runtime logic (not just logging) to shape
+stage outputs, compliance scoring, and deterministic constraints.
