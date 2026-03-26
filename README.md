@@ -66,3 +66,35 @@ This creates config defaults, tone profile template, and `.env` placeholder.
 
 KB and stage policy packs are consumed by runtime logic (not just logging) to shape
 stage outputs, compliance scoring, and deterministic constraints.
+
+## LLM model routing (Responses API)
+
+`data_swarm` uses OpenAI Responses API for LLM calls. Model routing is profile-based and
+configured in YAML, so you can switch GPT-5-family model names (or any supported model
+name in your environment) without code changes.
+
+Example:
+
+```yaml
+llm:
+  provider: openai
+  defaults:
+    model: gpt-5.4
+    reasoning_effort: medium
+    verbosity: medium
+    max_output_tokens: null
+  profiles:
+    meridian.codegen:
+      model: gpt-5.2-pro
+      reasoning_effort: high
+      verbosity: medium
+    meridian.debugger:
+      model: gpt-5.2
+      reasoning_effort: high
+      verbosity: low
+```
+
+Notes:
+- `llm.defaults` applies to all profile keys unless overridden.
+- `llm.profiles` supports per-stage and per-agent keys like `triage.concierge`.
+- Keep the model string environment-configurable; do not hardcode assumptions in code.

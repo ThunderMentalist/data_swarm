@@ -6,6 +6,7 @@ from pathlib import Path
 
 from data_swarm.agents.deliverable import run_deliverable
 from data_swarm.kb import load_kb
+from data_swarm.orchestrator.execution_context import ExecutionContext
 from data_swarm.orchestrator.hitl import approve
 from data_swarm.orchestrator.run_mode import policy_for_mode, resolve_run_mode
 from data_swarm.orchestrator.task_models import TaskState
@@ -44,16 +45,17 @@ def run_task(task_id: str, config: dict, home: Path, io: UserIO | None = None, r
     logs = LogStore(task_dir, anonymizer=anonymizer, strict_redaction=policy.strict_redaction)
     kb = load_kb(home)
     memory_store = MemoryStore(home)
+    execution_context = ExecutionContext(config=config)
 
     if task.state == TaskState.AWAITING_REPLIES:
-        reaction = ReactionStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)
+        reaction = ReactionStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer, execution_context=execution_context)
         _event(logs, task_id, "reaction", "stage_start", "reaction started")
-        result = reaction.run(task, task_dir, kb, store.list_attachments(task_id), memory_store=memory_store, run_mode=mode, run_mode_policy=policy, repo_root=home)
+        result = reaction.run(task, task_dir, kb, store.list_attachments(task_id), memory_store=memory_store, run_mode=mode, run_mode_policy=policy, repo_root=home, execution_context=execution_context)
         _event(logs, task_id, "reaction", "stage_complete", "reaction finished", {"approved": result.approved, "state_after": result.state_after.value})
         if not result.approved:
             return
 
-        readiness = ReadinessStage(config)
+        readiness = ReadinessStage(config, execution_context=execution_context)
         decision = readiness.evaluate(store.load(task_id), task_dir)
         target = readiness.to_task_state(decision.recommended_state)
         if target in {TaskState.REPLANNING, TaskState.READY_TO_DELIVER}:
@@ -71,18 +73,18 @@ def run_task(task_id: str, config: dict, home: Path, io: UserIO | None = None, r
     else:
         stages: list[tuple[str, object]] = [
         ("intake_refine", IntakeRefineStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)),
-        ("triage", TriageStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)),
-        ("planner", PlannerStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)),
-        ("stakeholder", StakeholderStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)),
-        ("navigation", NavigationStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)),
-        ("comms", CommsStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer)),
+        ("triage", TriageStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer, execution_context=execution_context)),
+        ("planner", PlannerStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer, execution_context=execution_context)),
+        ("stakeholder", StakeholderStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer, execution_context=execution_context)),
+        ("navigation", NavigationStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer, execution_context=execution_context)),
+        ("comms", CommsStage(config=config, home=home, io=io, store=store, logs=logs, anonymizer=anonymizer, execution_context=execution_context)),
     ]
 
     attachments = store.list_attachments(task_id)
     for stage_name, stage in stages:
         task = store.load(task_id)
         _event(logs, task_id, stage_name, "stage_start", f"{stage_name} started")
-        result = stage.run(task, task_dir, kb, attachments, memory_store=memory_store, run_mode=mode, run_mode_policy=policy, repo_root=home)
+        result = stage.run(task, task_dir, kb, attachments, memory_store=memory_store, run_mode=mode, run_mode_policy=policy, repo_root=home, execution_context=execution_context)
         _event(logs, task_id, stage_name, "stage_complete", f"{stage_name} finished", {"approved": result.approved, "skipped": result.skipped, "state_after": result.state_after.value, "artifacts_written": result.artifacts_written})
         if not result.approved:
             logs.run_log(f"pipeline stopped: {stage_name} not approved")

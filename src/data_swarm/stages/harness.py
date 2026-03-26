@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from data_swarm.orchestrator.execution_context import ExecutionContext
 from data_swarm.orchestrator.hitl import StageGateAction, ask_multiline, stage_gate
 from data_swarm.orchestrator.run_mode import RunMode, RunModePolicy
 from data_swarm.orchestrator.state_machine import InvalidTransitionError
@@ -48,6 +49,7 @@ class StageContext:
     run_mode_policy: RunModePolicy
     repo_root: Path
     cycle_id: int
+    execution_context: ExecutionContext | None = None
 
 
 def cycle_dir(stage_dir: Path, cycle_id: int) -> Path:
@@ -66,7 +68,8 @@ class StageHarness:
             make_initial: Callable[[StageContext], Any], update_draft_via_hitl: Callable[[StageContext, Any], tuple[Any, dict[str, Any]]],
             render_final: Callable[[StageContext, Any], Any], post_approval: Callable[[StageContext, Any, Any], dict[str, Any]],
             memory_store: MemoryStore | None = None, run_mode: RunMode = RunMode.INITIAL_USING,
-            run_mode_policy: RunModePolicy | None = None, repo_root: Path | None = None) -> StageResult:
+            run_mode_policy: RunModePolicy | None = None, repo_root: Path | None = None,
+            execution_context: ExecutionContext | None = None) -> StageResult:
         run_mode_policy = run_mode_policy or RunModePolicy(True, True, True, True, False, False, True, False, False)
         stage_dir = task_dir / self.spec.stage_dir
         stage_dir.mkdir(parents=True, exist_ok=True)
@@ -76,7 +79,22 @@ class StageHarness:
 
         initial_path, draft_path, final_path = cdir / self.spec.initial_name, cdir / self.spec.draft_name, cdir / self.spec.final_name
         iteration_path, learning_path, manifest_path = cdir / "iterations.jsonl", cdir / "learning_summary.md", cdir / "manifest.json"
-        ctx = StageContext(task, task_dir, stage_dir, cdir, self.io, attachments, kb, policy, memory_store, run_mode, run_mode_policy, repo_root or task_dir, task.cycle_id)
+        ctx = StageContext(
+            task,
+            task_dir,
+            stage_dir,
+            cdir,
+            self.io,
+            attachments,
+            kb,
+            policy,
+            memory_store,
+            run_mode,
+            run_mode_policy,
+            repo_root or task_dir,
+            task.cycle_id,
+            execution_context=execution_context,
+        )
 
         artifacts: list[str] = []
         if run_mode_policy.watermark_demo_artifacts:
