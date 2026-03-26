@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from data_swarm.llm import LLMProfile
+from data_swarm.orchestrator.execution_context import ExecutionContext
 from data_swarm.orchestrator.task_models import Task, TaskState
 from data_swarm.stages.artifacts import load_stage_inputs
 from data_swarm.stages.reaction.models import ReadinessDecision
@@ -13,8 +15,12 @@ from data_swarm.stages.reaction.models import ReadinessDecision
 class ReadinessStage:
     name = "readiness"
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, execution_context: ExecutionContext | None = None):
         self.config = config
+        self.execution_context = execution_context
+        self.evaluator_profile: LLMProfile | None = (
+            execution_context.try_llm_profile("readiness.evaluator") if execution_context else None
+        )
 
     def evaluate(self, task: Task, task_dir: Path) -> ReadinessDecision:
         upstream = load_stage_inputs(task_dir)

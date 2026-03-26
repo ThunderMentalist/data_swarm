@@ -16,7 +16,14 @@ def _base_config(tmp_path: Path) -> dict:
     return {
         "data_swarm_home": str(tmp_path),
         "paths": {"meridian_repo": str(meridian), "meridian_aux_repo": str(meridian_aux)},
-        "llm": {"model": "dummy"},
+        "llm": {
+            "provider": "openai",
+            "defaults": {"model": "dummy", "reasoning_effort": "medium", "verbosity": "medium"},
+            "profiles": {
+                "meridian.codegen": {"model": "dummy.codegen", "reasoning_effort": "high", "verbosity": "medium"},
+                "meridian.debugger": {"model": "dummy.debugger", "reasoning_effort": "high", "verbosity": "low"},
+            },
+        },
         "meridian_aux": {"max_files": 2, "max_chars": 200, "max_debug_iterations": 1},
     }
 

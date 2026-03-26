@@ -1,7 +1,68 @@
 timezone: Europe/London
 llm:
   provider: openai
-  model: gpt-4o-mini
+  defaults:
+    model: gpt-5.4
+    reasoning_effort: medium
+    verbosity: medium
+    max_output_tokens: null
+  profiles:
+    triage.concierge:
+      model: gpt-5.4
+      reasoning_effort: medium
+      verbosity: medium
+    triage.critic:
+      model: gpt-5.4
+      reasoning_effort: high
+      verbosity: low
+    planner.concierge:
+      model: gpt-5.4
+      reasoning_effort: high
+      verbosity: medium
+    planner.critic:
+      model: gpt-5.4
+      reasoning_effort: high
+      verbosity: low
+    stakeholder.concierge:
+      model: gpt-5.4
+      reasoning_effort: medium
+      verbosity: medium
+    stakeholder.critic:
+      model: gpt-5.4
+      reasoning_effort: medium
+      verbosity: low
+    navigation.concierge:
+      model: gpt-5.4
+      reasoning_effort: medium
+      verbosity: medium
+    navigation.critic:
+      model: gpt-5.4
+      reasoning_effort: high
+      verbosity: low
+    comms.concierge:
+      model: gpt-5.4
+      reasoning_effort: low
+      verbosity: medium
+    comms.critic:
+      model: gpt-5.4
+      reasoning_effort: medium
+      verbosity: low
+    reaction.concierge:
+      model: gpt-5.4
+      reasoning_effort: medium
+      verbosity: medium
+    readiness.evaluator:
+      model: gpt-5.4
+      reasoning_effort: high
+      verbosity: low
+    meridian.codegen:
+      model: gpt-5.4
+      reasoning_effort: high
+      verbosity: medium
+    meridian.debugger:
+      model: gpt-5.4
+      reasoning_effort: high
+      verbosity: medium
 triage:
   default_sensitivity: internal
   risk_flags:

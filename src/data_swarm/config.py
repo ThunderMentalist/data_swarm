@@ -13,7 +13,31 @@ from data_swarm.tools.dotenv import load_dotenv
 
 DEFAULT_CONFIG = {
     "timezone": "Europe/London",
-    "llm": {"provider": "openai", "model": "gpt-4o-mini"},
+    "llm": {
+        "provider": "openai",
+        "defaults": {
+            "model": "gpt-5.4",
+            "reasoning_effort": "medium",
+            "verbosity": "medium",
+            "max_output_tokens": None,
+        },
+        "profiles": {
+            "triage.concierge": {"model": "gpt-5.4", "reasoning_effort": "medium", "verbosity": "medium"},
+            "triage.critic": {"model": "gpt-5.4", "reasoning_effort": "high", "verbosity": "low"},
+            "planner.concierge": {"model": "gpt-5.4", "reasoning_effort": "high", "verbosity": "medium"},
+            "planner.critic": {"model": "gpt-5.4", "reasoning_effort": "high", "verbosity": "low"},
+            "stakeholder.concierge": {"model": "gpt-5.4", "reasoning_effort": "medium", "verbosity": "medium"},
+            "stakeholder.critic": {"model": "gpt-5.4", "reasoning_effort": "medium", "verbosity": "low"},
+            "navigation.concierge": {"model": "gpt-5.4", "reasoning_effort": "medium", "verbosity": "medium"},
+            "navigation.critic": {"model": "gpt-5.4", "reasoning_effort": "high", "verbosity": "low"},
+            "comms.concierge": {"model": "gpt-5.4", "reasoning_effort": "low", "verbosity": "medium"},
+            "comms.critic": {"model": "gpt-5.4", "reasoning_effort": "medium", "verbosity": "low"},
+            "reaction.concierge": {"model": "gpt-5.4", "reasoning_effort": "medium", "verbosity": "medium"},
+            "readiness.evaluator": {"model": "gpt-5.4", "reasoning_effort": "high", "verbosity": "low"},
+            "meridian.codegen": {"model": "gpt-5.4", "reasoning_effort": "high", "verbosity": "medium"},
+            "meridian.debugger": {"model": "gpt-5.4", "reasoning_effort": "high", "verbosity": "medium"},
+        },
+    },
     "triage": {
         "default_sensitivity": "internal",
         "risk_flags": ["timeline", "dependency", "stakeholder_alignment"],
@@ -177,6 +201,18 @@ def _merge(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _normalize_llm_config(payload: dict[str, Any]) -> dict[str, Any]:
+    """Normalize legacy llm.model shape into llm.defaults.model."""
+    llm_cfg = dict(payload.get("llm", {}))
+    defaults = dict(llm_cfg.get("defaults", {}))
+    if llm_cfg.get("model"):
+        defaults["model"] = llm_cfg["model"]
+    llm_cfg.pop("model", None)
+    llm_cfg["defaults"] = defaults
+    payload["llm"] = llm_cfg
+    return payload
+
+
 def _seed_kb_templates(root: Path) -> None:
     """Create KB scaffold in DATA_SWARM_HOME from repo templates or inline defaults."""
     kb_dir = root / "kb"
@@ -281,6 +317,7 @@ def load_config(home: Path | None = None) -> Config:
     payload: dict[str, Any] = dict(DEFAULT_CONFIG)
     if cfg_path.exists():
         payload = _merge(payload, yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {})
+    payload = _normalize_llm_config(payload)
     paths = dict(payload.get("paths", {}))
     repo_root = Path(paths.get("repo_root", str(detect_repo_root())))
     paths.setdefault("repo_root", str(repo_root))

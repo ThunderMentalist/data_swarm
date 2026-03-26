@@ -7,14 +7,14 @@ from pathlib import Path
 
 import yaml
 
-from data_swarm.llm import LLMUnavailableError, OpenAIProvider
+from data_swarm.llm import LLMProfile, LLMUnavailableError, OpenAIProvider
 
 
 class CodegenAgent:
     """Generate patch/tests/snippets using provider output."""
 
-    def __init__(self, model: str) -> None:
-        self.provider = OpenAIProvider(model)
+    def __init__(self, profile: LLMProfile) -> None:
+        self.provider = OpenAIProvider(profile)
 
     def generate(self, prompt_path: Path, context: str) -> dict:
         """Generate machine-parseable payload."""

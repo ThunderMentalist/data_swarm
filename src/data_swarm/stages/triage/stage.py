@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 
 from data_swarm.kb import load_stage_policy, select_stage_kb_context
+from data_swarm.llm import LLMProfile
+from data_swarm.orchestrator.execution_context import ExecutionContext
 from data_swarm.orchestrator.hitl import ask_multiline
 from data_swarm.orchestrator.task_models import Task, TaskState
 from data_swarm.stages.base import AgenticStage, StageResult
@@ -25,13 +27,29 @@ from data_swarm.tools.io import UserIO
 class TriageStage(AgenticStage):
     name = "triage"
 
-    def __init__(self, config: dict, home: Path, io: UserIO, store: TaskStore, logs: LogStore, anonymizer: Anonymizer | None = None) -> None:
+    def __init__(
+        self,
+        config: dict,
+        home: Path,
+        io: UserIO,
+        store: TaskStore,
+        logs: LogStore,
+        anonymizer: Anonymizer | None = None,
+        execution_context: ExecutionContext | None = None,
+    ) -> None:
         self.config = config
         self.home = home
         self.io = io
         self.store = store
         self.logs = logs
         self.anonymizer = anonymizer or Anonymizer(home / "kb" / "personas.yaml")
+        self.execution_context = execution_context
+        self.concierge_profile: LLMProfile | None = (
+            execution_context.try_llm_profile("triage.concierge") if execution_context else None
+        )
+        self.critic_profile: LLMProfile | None = (
+            execution_context.try_llm_profile("triage.critic", fallback="triage.concierge") if execution_context else None
+        )
 
     def run(self, task: Task, task_dir: Path, kb: dict | None = None, attachments: list[dict] | None = None, **kwargs) -> StageResult:
         kb = select_stage_kb_context(self.name, kb or {})

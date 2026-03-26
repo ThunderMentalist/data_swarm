@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from data_swarm.llm import resolve_llm_profile
 from data_swarm.orchestrator.hitl import approve
 from data_swarm.orchestrator.task_models import Task
 from data_swarm.projects.meridian_aux.agents.codegen import CodegenAgent
@@ -38,6 +39,9 @@ class MeridianAuxProject:
         index_path = Path(self.config["data_swarm_home"]) / "indexes" / "meridian" / "index.sqlite"
         build_index(index_path, [meridian, meridian_aux])
 
+        codegen_profile = resolve_llm_profile(self.config, "meridian.codegen")
+        debugger_profile = resolve_llm_profile(self.config, "meridian.debugger", fallback="meridian.codegen")
+
         cfg = self.config["meridian_aux"]
         evidence = task_dir / "07_deliverable" / "evidence"
         evidence.mkdir(parents=True, exist_ok=True)
@@ -66,7 +70,7 @@ class MeridianAuxProject:
         )
 
         context = (evidence / "context.md").read_text(encoding="utf-8")
-        generated = CodegenAgent(self.config["llm"]["model"]).generate(
+        generated = CodegenAgent(codegen_profile).generate(
             Path(__file__).parent / "prompts" / "codegen.md",
             context,
         )
@@ -102,7 +106,7 @@ class MeridianAuxProject:
                 break
 
             debug_context = (deliverable / "traceback.txt").read_text(encoding="utf-8")
-            debug = DebuggerAgent(self.config["llm"]["model"]).propose(
+            debug = DebuggerAgent(debugger_profile).propose(
                 Path(__file__).parent / "prompts" / "debugger.md",
                 debug_context,
             )
